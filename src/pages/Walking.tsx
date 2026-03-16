@@ -8,8 +8,6 @@ export default function Walking() {
   const [stats, setStats] = useState<WalkingStats | null>(null)
   const [minutes, setMinutes] = useState('')
   const [km, setKm] = useState('')
-  const [loading, setLoading] = useState(true)
-
   async function load() {
     const weekStart = getWeekStart()
     const [e, s] = await Promise.all([
@@ -18,7 +16,6 @@ export default function Walking() {
     ])
     setEntries(e)
     setStats(s)
-    setLoading(false)
   }
 
   useEffect(() => { load() }, [])

@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness-Plan Sebastian</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #242836;
+            --border: #2e3345;
+            --text: #e4e6f0;
+            --text-dim: #8b90a5;
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --green: #22c55e;
+            --green-dim: #166534;
+            --red: #ef4444;
+            --red-dim: #7f1d1d;
+            --orange: #f59e0b;
+            --orange-dim: #78350f;
+            --blue: #3b82f6;
+            --blue-dim: #1e3a5f;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 0;
+        }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+            padding: 3rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #c7d2fe, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        .hero-stat {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            min-width: 160px;
+        }
+        .hero-stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+        }
+        .hero-stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent-light);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Navigation tabs */
+        .nav {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 100;
+            padding-top: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .nav-btn:hover { border-color: var(--accent); color: var(--text); }
+        .nav-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* Sections */
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        .card-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        /* Phase cards */
+        .phase-card { border-left: 4px solid; }
+        .phase-1 { border-left-color: var(--green); }
+        .phase-2 { border-left-color: var(--orange); }
+        .phase-3 { border-left-color: var(--red); }
+
+        /* Exercise table */
+        .exercise-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .exercise-table th {
+            text-align: left;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+        }
+        .exercise-table td {
+            padding: 0.7rem 0.8rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-size: 0.9rem;
+        }
+        .exercise-table tr:last-child td { border-bottom: none; }
+        .exercise-table tr:hover { background: rgba(255,255,255,0.02); }
+
+        .exercise-num {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--surface2);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent-light);
+        }
+        .exercise-name { font-weight: 600; }
+        .exercise-device { color: var(--text-dim); font-size: 0.85rem; }
+        .exercise-note {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            font-style: italic;
+        }
+        .sets-badge {
+            background: var(--surface2);
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Pyramid info */
+        .pyramid-box {
+            background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(99,102,241,0.05));
+            border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        .pyramid-box h4 {
+            color: var(--accent-light);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .pyramid-steps {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .pyramid-step {
+            flex: 1;
+            min-width: 140px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 0.6rem 0.8rem;
+            text-align: center;
+        }
+        .pyramid-step-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+        }
+        .pyramid-step-value {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .pyramid-step:last-child .pyramid-step-value { color: var(--accent-light); }
+
+        /* Warning box */
+        .warning-box {
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            margin: 1rem 0;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+        .warning-box .icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 0.1rem; }
+        .warning-box p { font-size: 0.9rem; }
+        .warning-box strong { color: var(--red); }
+
+        .info-box {
+            background: rgba(59,130,246,0.08);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            margin: 1rem 0;
+        }
+        .info-box strong { color: var(--blue); }
+
+        .success-box {
+            background: rgba(34,197,94,0.08);
+            border: 1px solid rgba(34,197,94,0.2);
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            margin: 1rem 0;
+        }
+        .success-box strong { color: var(--green); }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .tag-green { background: var(--green-dim); color: var(--green); }
+        .tag-red { background: var(--red-dim); color: var(--red); }
+        .tag-orange { background: var(--orange-dim); color: var(--orange); }
+        .tag-blue { background: var(--blue-dim); color: var(--blue); }
+
+        /* Timeline */
+        .timeline { margin: 1rem 0; }
+        .timeline-item {
+            display: flex;
+            gap: 1rem;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .timeline-item:last-child { border-bottom: none; }
+        .timeline-week {
+            min-width: 80px;
+            font-weight: 600;
+            color: var(--accent-light);
+            font-size: 0.85rem;
+        }
+        .timeline-dist {
+            font-weight: 700;
+            min-width: 100px;
+        }
+        .timeline-note {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        /* Shoulder protocol */
+        .protocol-list { list-style: none; padding: 0; }
+        .protocol-list li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .protocol-list .icon { font-size: 1.1rem; }
+
+        /* Nutrition */
+        .meal-card {
+            background: var(--surface2);
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            margin-bottom: 0.75rem;
+        }
+        .meal-time {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent-light);
+            margin-bottom: 0.3rem;
+        }
+        .meal-title {
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+        .meal-detail {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+        .meal-macros {
+            display: inline-flex;
+            gap: 0.5rem;
+            margin-top: 0.3rem;
+        }
+        .macro-tag {
+            font-size: 0.75rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            background: rgba(99,102,241,0.15);
+            color: var(--accent-light);
+            font-weight: 600;
+        }
+
+        /* Rules */
+        .rule-card {
+            background: var(--surface2);
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 0.75rem;
+        }
+        .rule-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+        }
+        .rule-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            display: inline;
+        }
+        .rule-body {
+            margin-top: 0.5rem;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        /* Milestones */
+        .milestone {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--surface2);
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+        }
+        .milestone-date {
+            min-width: 120px;
+            font-weight: 700;
+            color: var(--accent-light);
+            font-size: 0.9rem;
+        }
+        .milestone-weight {
+            font-size: 1.5rem;
+            font-weight: 800;
+            min-width: 70px;
+        }
+        .milestone-goal {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        /* Week plan */
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.75rem;
+        }
+        .week-day {
+            background: var(--surface2);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .week-day.gym {
+            border: 1px solid rgba(99,102,241,0.3);
+            background: rgba(99,102,241,0.05);
+        }
+        .week-day-name {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            margin-bottom: 0.3rem;
+        }
+        .week-day-date {
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+        .week-day-activity {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+        .week-day.gym .week-day-activity { color: var(--accent-light); font-weight: 600; }
+
+        /* Day tabs within phase */
+        .day-tabs {
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .day-tab {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .day-tab:hover { border-color: var(--accent); color: var(--text); }
+        .day-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+        .day-content { display: none; }
+        .day-content.active { display: block; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .hero { padding: 2rem 1rem; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero-stats { gap: 0.75rem; }
+            .hero-stat { min-width: 130px; padding: 0.75rem 1rem; }
+            .container { padding: 1rem; }
+            .exercise-table { font-size: 0.8rem; }
+            .exercise-table th, .exercise-table td { padding: 0.5rem; }
+            .milestone { flex-wrap: wrap; }
+            .pyramid-steps { flex-direction: column; }
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 1.2rem 0 0.8rem;
+            color: var(--text);
+        }
+
+        p, li { font-size: 0.9rem; }
+        ul { padding-left: 1.2rem; margin: 0.5rem 0; }
+        li { margin-bottom: 0.3rem; }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>Fitness-Plan</h1>
+    <p class="hero-subtitle">Start: 16. Marz 2026 &mdash; Ziel: Mammutmarsch Bremen, 5. September 2026</p>
+    <div class="hero-stats">
+        <div class="hero-stat">
+            <div class="hero-stat-label">Startgewicht</div>
+            <div class="hero-stat-value">94 kg</div>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-label">Zielgewicht</div>
+            <div class="hero-stat-value">~80 kg</div>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-label">Mammutmarsch</div>
+            <div class="hero-stat-value">55 km</div>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-label">Dauer</div>
+            <div class="hero-stat-value">24 Wochen</div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="nav">
+        <button class="nav-btn active" onclick="showSection('overview')">Ubersicht</button>
+        <button class="nav-btn" onclick="showSection('phase1')">Phase 1</button>
+        <button class="nav-btn" onclick="showSection('phase2')">Phase 2</button>
+        <button class="nav-btn" onclick="showSection('phase3')">Phase 3</button>
+        <button class="nav-btn" onclick="showSection('shoulder')">Schulter</button>
+        <button class="nav-btn" onclick="showSection('nutrition')">Ernahrung</button>
+        <button class="nav-btn" onclick="showSection('mindset')">Durchhalten</button>
+        <button class="nav-btn" onclick="showSection('progression')">Progression</button>
+    </div>
+
+    <!-- ==================== UBERSICHT ==================== -->
+    <div id="overview" class="section active">
+        <h2>Gesamtstrategie: 3 Phasen</h2>
+
+        <p style="color: var(--text-dim); margin-bottom: 1.5rem;">
+            Der Plan ist in 3 Phasen aufgeteilt, damit dein Korper sich schrittweise anpassen kann und du nicht wieder in das alte Muster
+            &bdquo;zu viel zu schnell &rarr; Uberforderung &rarr; Abbruch&ldquo; fallst.
+        </p>
+
+        <div class="card phase-card phase-1">
+            <div class="card-header">
+                <div class="card-icon" style="background: var(--green-dim);">&#127793;</div>
+                <div>
+                    <div class="card-title">Phase 1 &mdash; Wiedereinstieg</div>
+                    <div class="card-subtitle">Woche 1&ndash;4 &middot; Mitte Marz &ndash; Mitte April &middot; <span class="tag tag-green">3x/Woche</span></div>
+                </div>
+            </div>
+            <p>Gewohnung, Beweglichkeit, Grundkraft. <strong>Routine etablieren ist das Wichtigste.</strong></p>
+        </div>
+
+        <div class="card phase-card phase-2">
+            <div class="card-header">
+                <div class="card-icon" style="background: var(--orange-dim);">&#128170;</div>
+                <div>
+                    <div class="card-title">Phase 2 &mdash; Aufbau</div>
+                    <div class="card-subtitle">Woche 5&ndash;12 &middot; Mitte April &ndash; Mitte Juni &middot; <span class="tag tag-orange">4x/Woche</span></div>
+                </div>
+            </div>
+            <p>Kraftaufbau, Muskelmasse, Ausdauer steigern. Upper/Lower Split.</p>
+        </div>
+
+        <div class="card phase-card phase-3">
+            <div class="card-header">
+                <div class="card-icon" style="background: var(--red-dim);">&#128293;</div>
+                <div>
+                    <div class="card-title">Phase 3 &mdash; Leistung</div>
+                    <div class="card-subtitle">Woche 13&ndash;24 &middot; Mitte Juni &ndash; Anfang September &middot; <span class="tag tag-red">5x/Woche</span></div>
+                </div>
+            </div>
+            <p>Maximale Kraft + spezifische Mammutmarsch-Vorbereitung. Push/Pull/Legs/Upper/Lower.</p>
+        </div>
+
+        <h2 style="margin-top: 2rem;">Woche 1 &mdash; Start sofort!</h2>
+        <div class="week-grid">
+            <div class="week-day gym">
+                <div class="week-day-name">Montag</div>
+                <div class="week-day-date">16.3.</div>
+                <div class="week-day-activity">Gym: Ganzkorper</div>
+            </div>
+            <div class="week-day">
+                <div class="week-day-name">Dienstag</div>
+                <div class="week-day-date">17.3.</div>
+                <div class="week-day-activity">Walking Pad 2h</div>
+            </div>
+            <div class="week-day gym">
+                <div class="week-day-name">Mittwoch</div>
+                <div class="week-day-date">18.3.</div>
+                <div class="week-day-activity">Gym: Ganzkorper</div>
+            </div>
+            <div class="week-day">
+                <div class="week-day-name">Donnerstag</div>
+                <div class="week-day-date">19.3.</div>
+                <div class="week-day-activity">Walking Pad 2h</div>
+            </div>
+            <div class="week-day gym">
+                <div class="week-day-name">Freitag</div>
+                <div class="week-day-date">20.3.</div>
+                <div class="week-day-activity">Gym: Ganzkorper</div>
+            </div>
+            <div class="week-day">
+                <div class="week-day-name">Samstag</div>
+                <div class="week-day-date">21.3.</div>
+                <div class="week-day-activity">Spaziergang 60&ndash;90 Min</div>
+            </div>
+            <div class="week-day">
+                <div class="week-day-name">Sonntag</div>
+                <div class="week-day-date">22.3.</div>
+                <div class="week-day-activity">Aktive Erholung</div>
+            </div>
+        </div>
+
+        <h2 style="margin-top: 2rem;">Meilensteine</h2>
+        <div class="milestone">
+            <div class="milestone-date">Mitte April<br><span style="font-size:0.75rem;color:var(--text-dim)">Woche 4</span></div>
+            <div class="milestone-weight">~91 kg</div>
+            <div class="milestone-goal">Routine etabliert, regelma&szlig;ige Gym-Besuche</div>
+        </div>
+        <div class="milestone">
+            <div class="milestone-date">Mitte Juni<br><span style="font-size:0.75rem;color:var(--text-dim)">Woche 12</span></div>
+            <div class="milestone-weight">~87 kg</div>
+            <div class="milestone-goal">Sichtbarer Kraftzuwachs, 15 km Walk locker moglich</div>
+        </div>
+        <div class="milestone">
+            <div class="milestone-date">Anfang August<br><span style="font-size:0.75rem;color:var(--text-dim)">Woche 20</span></div>
+            <div class="milestone-weight">~83 kg</div>
+            <div class="milestone-goal">25 km Walk geschafft</div>
+        </div>
+        <div class="milestone" style="border: 1px solid rgba(99,102,241,0.3);">
+            <div class="milestone-date">5. September<br><span style="font-size:0.75rem;color:var(--text-dim)">Woche 24</span></div>
+            <div class="milestone-weight" style="color: var(--accent-light);">~80 kg</div>
+            <div class="milestone-goal"><strong>Mammutmarsch 55 km Bremen</strong></div>
+        </div>
+        <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 0.75rem; font-style: italic;">
+            Die Gewichtsziele sind Orientierung, kein Druck. Muskelaufbau kann bedeuten, dass die Waage weniger sinkt als erwartet &mdash; das ist normal und gut.
+        </p>
+    </div>
+
+    <!-- ==================== PHASE 1 ==================== -->
+    <div id="phase1" class="section">
+        <h2><span class="tag tag-green" style="font-size:0.85rem; margin-right:0.5rem;">Phase 1</span> Wiedereinstieg (Woche 1&ndash;4)</h2>
+
+        <div class="card">
+            <h3>Ziele</h3>
+            <ul>
+                <li>Korper wieder an Belastung gewohnen</li>
+                <li>Beweglichkeit und Stabilitat aufbauen</li>
+                <li><strong>Routine etablieren &mdash; das ist das Wichtigste in dieser Phase</strong></li>
+                <li>Kein Muskelkater, der dich tagelang lahmlegt</li>
+            </ul>
+        </div>
+
+        <div class="pyramid-box">
+            <h4>Pyramiden-System (jede Ubung)</h4>
+            <div class="pyramid-steps">
+                <div class="pyramid-step">
+                    <div class="pyramid-step-label">Satz 1</div>
+                    <div class="pyramid-step-value">Leicht &times; 15</div>
+                    <div style="font-size:0.75rem; color:var(--text-dim)">Aufwarmen</div>
+                </div>
+                <div class="pyramid-step">
+                    <div class="pyramid-step-label">Satz 2</div>
+                    <div class="pyramid-step-value">Mittel &times; 12</div>
+                    <div style="font-size:0.75rem; color:var(--text-dim)">Arbeitsgewicht</div>
+                </div>
+                <div class="pyramid-step">
+                    <div class="pyramid-step-label">Satz 3</div>
+                    <div class="pyramid-step-value">Schwer &times; 10</div>
+                    <div style="font-size:0.75rem; color:var(--text-dim)">2&ndash;3 Wdh Reserve!</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <div class="icon">&#9888;&#65039;</div>
+            <div>
+                <p><strong>Schulter-Regel:</strong> Bei Oberkorper-Ubungen NIE bis zum Muskelversagen. Wenn die Muskeln versagen, ubernehmen die Gelenke die Last &mdash; bei Arthrose gefahrlich. Immer 2&ndash;3 Wiederholungen in Reserve. Bei Beinubungen darfst du harter pushen.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Ganzkorper-Training &mdash; Mo / Mi / Fr (ca. 45 Min)</h3>
+            <p style="color: var(--text-dim); margin-bottom: 0.5rem;">Vor der ersten Oberkorper-Ubung: 2&ndash;3 Min Schulter-Mobilisation</p>
+            <table class="exercise-table">
+                <thead>
+                    <tr><th>#</th><th>Ubung</th><th>Gerat</th><th>Satze</th><th>Hinweise</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="exercise-num">1</span></td>
+                        <td class="exercise-name">Beinpresse</td>
+                        <td class="exercise-device">Technogym Leg Press</td>
+                        <td><span class="sets-badge">3 Pyramide</span></td>
+                        <td class="exercise-note">Fu&szlig;e schulterbreit, nicht zu tief</td>
+                    </tr>
+                    <tr>
+                        <td><span class="exercise-num">2</span></td>
+                        <td class="exercise-name">Beinbeuger liegend</td>
+                        <td class="exercise-device">L030</td>
+                        <td><span class="sets-badge">3 Pyramide</span></td>
+                        <td class="exercise-note">Kontrolliert, kein Schwung</td>
+                    </tr>
+                    <tr>
+                        <td><span class="exercise-num">3</span></td>
+                        <td class="exercise-name">Brustpresse</td>
+                        <td class="exercise-device">Technogym Chest Press</td>
+                        <td><span class="sets-badge">3 Pyramide</span></td>
+                        <td class="exercise-note">Nicht zu tief absenken (Schulter!)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="exercise-num">4</span></td>
+                        <td class="exercise-name">Rudermaschine</td>
+                        <td class="exercise-device">PL300 Seated Row</td>
+                        <td><span class="sets-badge">3 Pyramide</span></td>
+                        <td class="exercise-note">Schulterblatter zusammen, Ellbogen nah</td>
+                    </tr>
+                    <tr>
+                        <td><span class="exercise-num">5</span></td>
+                        <td class="exercise-name">Latzug</td>
+                        <td class="exercise-device">PL110 / Technogym</td>
+                        <td><span class="sets-badge">3 Pyramide</span></td>
+                        <td class="exercise-note">Weiter Griff, zur Brust (nicht Nacken!)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="exercise-num">6</span></td>
+                        <td class="exercise-name">Bauchmaschine</td>
+                        <td class="exercise-device">Technogym Abdominal</td>
+                        <td><span class="sets-badge">3 Pyramide</span></td>
+                        <td class="exercise-note">Langsam und kontrolliert</td>
+                    </tr>
+                    <tr>
+                        <td><span class="exercise-num">7</span></td>
+                        <td class="exercise-name">Ruckenstrecker</td>
+                        <td class="exercise-device">Technogym Lower Back</td>
+                        <td><span class="sets-badge">3 Pyramide</span></td>
+                        <td class="exercise-note">Kein Uberstrecken</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="info-box">
+            <strong>Gewichtswahl Phase 1:</strong> Taste dich ran. Satz 1 = leicht (Aufwarmen), Satz 3 = fordernd aber machbar. In den ersten 2 Wochen geht es um Technik und Routine, nicht um Rekorde.
+        </div>
+
+        <div class="card">
+            <h3>Restliche Tage</h3>
+            <ul>
+                <li><strong>Di / Do:</strong> Walking Pad im Buro wie gewohnt (2h+)</li>
+                <li><strong>Wochenende:</strong> 1x langerer Spaziergang (60&ndash;90 Min) &mdash; Mammutmarsch-Grundlage</li>
+                <li>Aktive Erholung: Spielen mit der Tochter zahlt!</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ==================== PHASE 2 ==================== -->
+    <div id="phase2" class="section">
+        <h2><span class="tag tag-orange" style="font-size:0.85rem; margin-right:0.5rem;">Phase 2</span> Aufbau (Woche 5&ndash;12)</h2>
+
+        <div class="card">
+            <h3>Ziele</h3>
+            <ul>
+                <li>Kraft systematisch steigern</li>
+                <li>Muskelmasse aufbauen</li>
+                <li>Ausdauer fur Mammutmarsch gezielt trainieren</li>
+                <li>Split-Training fur mehr Volumen pro Muskelgruppe</li>
+            </ul>
+        </div>
+
+        <div class="pyramid-box">
+            <h4>Pyramiden-System: Satz 1 leicht &rarr; pro Satz steigern &rarr; letzter Satz fordernd</h4>
+        </div>
+
+        <div class="day-tabs" data-group="phase2">
+            <button class="day-tab active" onclick="showDay('phase2', 'p2-lower')">Tag A: Unterkorper (Mo/Do)</button>
+            <button class="day-tab" onclick="showDay('phase2', 'p2-upper')">Tag B: Oberkorper (Di/Fr)</button>
+        </div>
+
+        <div id="p2-lower" class="day-content active" data-group="phase2">
+            <div class="card">
+                <h3>Tag A &mdash; Unterkorper (Mo / Do)</h3>
+                <table class="exercise-table">
+                    <thead>
+                        <tr><th>#</th><th>Ubung</th><th>Gerat</th><th>Satze</th><th>Hinweise</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><span class="exercise-num">1</span></td><td class="exercise-name">Beinpresse</td><td class="exercise-device">PL700 (Plate Loaded)</td><td><span class="sets-badge">4 Pyramide</span></td><td class="exercise-note">Hauptubung, hier darfst du schwer gehen</td></tr>
+                        <tr><td><span class="exercise-num">2</span></td><td class="exercise-name">Hack Squat</td><td class="exercise-device">PL200</td><td><span class="sets-badge">3 Pyramide</span></td><td></td></tr>
+                        <tr><td><span class="exercise-num">3</span></td><td class="exercise-name">Beinstrecker</td><td class="exercise-device">Technogym Leg Extension</td><td><span class="sets-badge">3 Pyramide</span></td><td></td></tr>
+                        <tr><td><span class="exercise-num">4</span></td><td class="exercise-name">Beinbeuger liegend</td><td class="exercise-device">L030</td><td><span class="sets-badge">3 Pyramide</span></td><td></td></tr>
+                        <tr><td><span class="exercise-num">5</span></td><td class="exercise-name">Hip Thrust</td><td class="exercise-device">PL340</td><td><span class="sets-badge">3 Pyramide</span></td><td></td></tr>
+                        <tr><td><span class="exercise-num">6</span></td><td class="exercise-name">Waden</td><td class="exercise-device">PL210 Seated Calf</td><td><span class="sets-badge">3 Pyramide</span></td><td></td></tr>
+                        <tr><td><span class="exercise-num">7</span></td><td class="exercise-name">Adduktoren</td><td class="exercise-device">Technogym Adductor</td><td><span class="sets-badge">3 Pyramide</span></td><td></td></tr>
+                        <tr><td><span class="exercise-num">8</span></td><td class="exercise-name">Abduktoren</td><td class="exercise-device">Technogym Abductor</td><td><span class="sets-badge">3 Pyramide</span></td><td></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="p2-upper" class="day-content" data-group="phase2">
+            <div class="card">
+                <h3>Tag B &mdash; Oberkorper (Di / Fr)</h3>
+                <p style="color: var(--text-dim); margin-bottom: 0.5rem;">Vor dem Training: 2&ndash;3 Min Schulter-Mobilisation (Pendeln, Kreisen)</p>
+                <table class="exercise-table">
+                    <thead>
+                        <tr><th>#</th><th>Ubung</th><th>Gerat</th><th>Satze</th><th>Hinweise</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><span class="exercise-num">1</span></td><td class="exercise-name">Brustpresse</td><td class="exercise-device">Technogym Chest Press</td><td><span class="sets-badge">4 Pyramide</span></td><td class="exercise-note">ROM begrenzen, 2&ndash;3 Wdh Reserve</td></tr>
+                        <tr><td><span class="exercise-num">2</span></td><td class="exercise-name">Rudermaschine</td><td class="exercise-device">PL300 Seated Row</td><td><span class="sets-badge">4 Pyramide</span></td><td></td></tr>
+                        <tr><td><span class="exercise-num">3</span></td><td class="exercise-name">Latzug</td><td class="exercise-device">Technogym Vertical Traction</td><td><span class="sets-badge">3 Pyramide</span></td><td></td></tr>
+                        <tr><td><span class="exercise-num">4</span></td><td class="exercise-name">Butterfly</td><td class="exercise-device">Technogym Pectoral</td><td><span class="sets-badge">3 Pyramide</span></td><td class="exercise-note">Nicht zu weit offnen</td></tr>
+                        <tr><td><span class="exercise-num">5</span></td><td class="exercise-name">Hintere Schulter</td><td class="exercise-device">L410 Rear Deltoid</td><td><span class="sets-badge">3 Pyramide</span></td><td class="exercise-note">Leichtes Gewicht, schulter-safe</td></tr>
+                        <tr><td><span class="exercise-num">6</span></td><td class="exercise-name">Oberer Rucken</td><td class="exercise-device">Technogym Upper Back</td><td><span class="sets-badge">3 Pyramide</span></td><td></td></tr>
+                        <tr><td><span class="exercise-num">7</span></td><td class="exercise-name">Bauchmaschine</td><td class="exercise-device">Technogym Abdominal</td><td><span class="sets-badge">3 Pyramide</span></td><td></td></tr>
+                        <tr><td><span class="exercise-num">8</span></td><td class="exercise-name">Ruckenstrecker</td><td class="exercise-device">Technogym Lower Back</td><td><span class="sets-badge">3 Pyramide</span></td><td></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="warning-box">
+                <div class="icon">&#9888;&#65039;</div>
+                <div>
+                    <p><strong>Schulter-Regeln:</strong> L490 (Seitheben), PL090 (Shoulder Press), L450 Dips &rarr; NICHT VERWENDEN. Brustpresse nicht tiefer als 90&deg; im Ellbogen.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 1rem;">
+            <h3>Mittwoch: Aktive Erholung</h3>
+            <ul>
+                <li>Walking Pad (2h)</li>
+                <li>10 Min Schulter-Mobilisation</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3>Wochenende: Mammutmarsch-Vorbereitung</h3>
+            <p style="color: var(--text-dim); margin-bottom: 0.75rem;">Familienkompatibel &mdash; mit Tochter/Familie moglich!</p>
+            <div class="timeline">
+                <div class="timeline-item"><span class="timeline-week">Woche 5&ndash;6</span><span class="timeline-dist">5&ndash;6 km</span><span class="timeline-note">~1 Stunde</span></div>
+                <div class="timeline-item"><span class="timeline-week">Woche 7&ndash;8</span><span class="timeline-dist">7&ndash;8 km</span><span class="timeline-note">~1,5 Stunden</span></div>
+                <div class="timeline-item"><span class="timeline-week">Woche 9&ndash;10</span><span class="timeline-dist">8&ndash;10 km</span><span class="timeline-note">~2 Stunden</span></div>
+                <div class="timeline-item"><span class="timeline-week">Woche 11&ndash;12</span><span class="timeline-dist">10&ndash;12 km</span><span class="timeline-note">~2&ndash;2,5 Stunden</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== PHASE 3 ==================== -->
+    <div id="phase3" class="section">
+        <h2><span class="tag tag-red" style="font-size:0.85rem; margin-right:0.5rem;">Phase 3</span> Leistung (Woche 13&ndash;24)</h2>
+
+        <div class="card">
+            <h3>Ziele</h3>
+            <ul>
+                <li>Maximale Kraft und Muskelmasse</li>
+                <li>Mammutmarsch-Distanz progressiv aufbauen</li>
+                <li>Gewicht weiter reduzieren</li>
+            </ul>
+        </div>
+
+        <div class="pyramid-box">
+            <h4>Alle Ubungen im Pyramiden-System. Bei Oberkorper 2&ndash;3 Wdh Reserve, bei Beinen an die Grenze gehen.</h4>
+        </div>
+
+        <div class="day-tabs" data-group="phase3">
+            <button class="day-tab active" onclick="showDay('phase3', 'p3-push')">Mo: Push</button>
+            <button class="day-tab" onclick="showDay('phase3', 'p3-pull')">Di: Pull</button>
+            <button class="day-tab" onclick="showDay('phase3', 'p3-legs')">Mi: Legs</button>
+            <button class="day-tab" onclick="showDay('phase3', 'p3-upper')">Do: Upper</button>
+            <button class="day-tab" onclick="showDay('phase3', 'p3-lower')">Fr: Lower</button>
+        </div>
+
+        <div id="p3-push" class="day-content active" data-group="phase3">
+            <div class="card">
+                <h3>Montag &mdash; Push (Brust, Trizeps)</h3>
+                <p style="color: var(--text-dim); margin-bottom: 0.5rem;">Vor dem Training: 2&ndash;3 Min Schulter-Mobilisation</p>
+                <table class="exercise-table">
+                    <thead><tr><th>#</th><th>Ubung</th><th>Gerat</th><th>Satze</th></tr></thead>
+                    <tbody>
+                        <tr><td><span class="exercise-num">1</span></td><td class="exercise-name">Brustpresse</td><td class="exercise-device">Technogym Chest Press</td><td><span class="sets-badge">4 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">2</span></td><td class="exercise-name">Schragbrustpresse</td><td class="exercise-device">L080</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">3</span></td><td class="exercise-name">Butterfly</td><td class="exercise-device">Technogym Pectoral</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">4</span></td><td class="exercise-name">Kabelzug Trizeps</td><td class="exercise-device">L480 Multifunktionsturm</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">5</span></td><td class="exercise-name">Bauch</td><td class="exercise-device">Technogym Abdominal</td><td><span class="sets-badge">4 Pyramide</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="p3-pull" class="day-content" data-group="phase3">
+            <div class="card">
+                <h3>Dienstag &mdash; Pull (Rucken, Bizeps)</h3>
+                <table class="exercise-table">
+                    <thead><tr><th>#</th><th>Ubung</th><th>Gerat</th><th>Satze</th></tr></thead>
+                    <tbody>
+                        <tr><td><span class="exercise-num">1</span></td><td class="exercise-name">Latzug</td><td class="exercise-device">PL110</td><td><span class="sets-badge">4 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">2</span></td><td class="exercise-name">Rudern</td><td class="exercise-device">PL300 Seated Row</td><td><span class="sets-badge">4 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">3</span></td><td class="exercise-name">Oberer Rucken</td><td class="exercise-device">Technogym Upper Back</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">4</span></td><td class="exercise-name">Hintere Schulter</td><td class="exercise-device">L410 Rear Deltoid</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">5</span></td><td class="exercise-name">Kabelzug Bizeps</td><td class="exercise-device">L480 Multifunktionsturm</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">6</span></td><td class="exercise-name">Ruckenstrecker</td><td class="exercise-device">Technogym Lower Back</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="p3-legs" class="day-content" data-group="phase3">
+            <div class="card">
+                <h3>Mittwoch &mdash; Legs (Beine Fokus Kraft)</h3>
+                <table class="exercise-table">
+                    <thead><tr><th>#</th><th>Ubung</th><th>Gerat</th><th>Satze</th></tr></thead>
+                    <tbody>
+                        <tr><td><span class="exercise-num">1</span></td><td class="exercise-name">Hack Squat</td><td class="exercise-device">PL200</td><td><span class="sets-badge">4 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">2</span></td><td class="exercise-name">Belt Squat</td><td class="exercise-device">PL320</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">3</span></td><td class="exercise-name">Beinbeuger</td><td class="exercise-device">L030</td><td><span class="sets-badge">4 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">4</span></td><td class="exercise-name">Beinstrecker</td><td class="exercise-device">Technogym Leg Extension</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">5</span></td><td class="exercise-name">Hip Thrust</td><td class="exercise-device">PL340</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">6</span></td><td class="exercise-name">Waden</td><td class="exercise-device">PL210</td><td><span class="sets-badge">4 Pyramide</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="p3-upper" class="day-content" data-group="phase3">
+            <div class="card">
+                <h3>Donnerstag &mdash; Upper (Oberkorper Volumen)</h3>
+                <p style="color: var(--text-dim); margin-bottom: 0.5rem;">Vor dem Training: 2&ndash;3 Min Schulter-Mobilisation</p>
+                <table class="exercise-table">
+                    <thead><tr><th>#</th><th>Ubung</th><th>Gerat</th><th>Satze</th></tr></thead>
+                    <tbody>
+                        <tr><td><span class="exercise-num">1</span></td><td class="exercise-name">Rudern</td><td class="exercise-device">Technogym Low Row</td><td><span class="sets-badge">4 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">2</span></td><td class="exercise-name">Brustpresse</td><td class="exercise-device">Technogym Chest Press</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">3</span></td><td class="exercise-name">Latzug</td><td class="exercise-device">Technogym Vertical Traction</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">4</span></td><td class="exercise-name">Butterfly</td><td class="exercise-device">Technogym Pectoral</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">5</span></td><td class="exercise-name">Hintere Schulter</td><td class="exercise-device">L410</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">6</span></td><td class="exercise-name">Kabelzug Tri + Bi</td><td class="exercise-device">L480</td><td><span class="sets-badge">je 3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">7</span></td><td class="exercise-name">Bauch + Rucken</td><td class="exercise-device">Technogym Abdominal + Lower Back</td><td><span class="sets-badge">je 3 Pyramide</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="p3-lower" class="day-content" data-group="phase3">
+            <div class="card">
+                <h3>Freitag &mdash; Lower (Beine Fokus Ausdauer + Mammutmarsch)</h3>
+                <table class="exercise-table">
+                    <thead><tr><th>#</th><th>Ubung</th><th>Gerat</th><th>Satze</th></tr></thead>
+                    <tbody>
+                        <tr><td><span class="exercise-num">1</span></td><td class="exercise-name">Beinpresse</td><td class="exercise-device">Technogym Leg Press</td><td><span class="sets-badge">4 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">2</span></td><td class="exercise-name">Beinbeuger</td><td class="exercise-device">Technogym Leg Curl</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">3</span></td><td class="exercise-name">Beinstrecker</td><td class="exercise-device">L010</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">4</span></td><td class="exercise-name">Adduktoren</td><td class="exercise-device">Technogym Adductor</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">5</span></td><td class="exercise-name">Abduktoren</td><td class="exercise-device">Technogym Abductor</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">6</span></td><td class="exercise-name">Rear Kick (Gesa&szlig;)</td><td class="exercise-device">PL330</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                        <tr><td><span class="exercise-num">7</span></td><td class="exercise-name">Waden</td><td class="exercise-device">PL210</td><td><span class="sets-badge">3 Pyramide</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 1rem;">
+            <h3>Wochenende: Mammutmarsch-Vorbereitung</h3>
+            <p style="color: var(--text-dim); margin-bottom: 0.75rem;">Familienkompatibel. Dein Walking Pad (2h/Tag = ~50 km/Woche!) liefert die Basisausdauer.</p>
+            <div class="timeline">
+                <div class="timeline-item"><span class="timeline-week">Woche 13&ndash;14</span><span class="timeline-dist">12&ndash;15 km</span><span class="timeline-note">~3 Stunden</span></div>
+                <div class="timeline-item"><span class="timeline-week">Woche 15&ndash;16</span><span class="timeline-dist">15&ndash;18 km</span><span class="timeline-note">~3,5 Stunden</span></div>
+                <div class="timeline-item"><span class="timeline-week">Woche 17&ndash;18</span><span class="timeline-dist">18&ndash;20 km</span><span class="timeline-note">Evtl. fruh morgens vor Familienzeit</span></div>
+                <div class="timeline-item"><span class="timeline-week">Woche 19&ndash;20</span><span class="timeline-dist">20&ndash;25 km</span><span class="timeline-note">Z.B. Samstag mit Freunden</span></div>
+                <div class="timeline-item"><span class="timeline-week">Woche 21&ndash;22</span><span class="timeline-dist">25&ndash;30 km</span><span class="timeline-note">Der gro&szlig;e Test &mdash; mit Mammutmarsch-Freunden!</span></div>
+                <div class="timeline-item"><span class="timeline-week">Woche 23</span><span class="timeline-dist">10&ndash;15 km</span><span class="timeline-note">Tapering / Erholung</span></div>
+                <div class="timeline-item" style="background: rgba(99,102,241,0.08); border-radius: 8px; padding: 0.8rem;">
+                    <span class="timeline-week" style="color: var(--accent-light);">Woche 24</span>
+                    <span class="timeline-dist" style="color: var(--accent-light);">55 km</span>
+                    <span class="timeline-note"><strong>Mammutmarsch Bremen &mdash; 5. September!</strong></span>
+                </div>
+            </div>
+
+            <div class="success-box" style="margin-top: 1rem;">
+                <strong>Wichtig fur die langen Walks:</strong>
+                <ul style="margin-top: 0.5rem;">
+                    <li>Schuhe: Gut eingelaufene Wanderschuhe (NICHT neue fur den Mammutmarsch!)</li>
+                    <li>Tempo: 5&ndash;6 km/h, gleichma&szlig;ig</li>
+                    <li>Pausen: Alle 10&ndash;15 km</li>
+                    <li>Ab 20 km: Blasenpflaster, Socken-Wechsel einpacken</li>
+                    <li>Verpflegung unterwegs uben</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SCHULTER ==================== -->
+    <div id="shoulder" class="section">
+        <h2>Schulter-Schutzprotokoll</h2>
+
+        <div class="card">
+            <h3 style="color: var(--red);">Verboten &mdash; komplett vermeiden</h3>
+            <ul class="protocol-list">
+                <li><span class="icon">&#10060;</span> <strong>L490</strong> &mdash; Seitheben-Maschine</li>
+                <li><span class="icon">&#10060;</span> <strong>PL090</strong> &mdash; Shoulder Press</li>
+                <li><span class="icon">&#10060;</span> <strong>L450</strong> &mdash; Dip-Funktion</li>
+                <li><span class="icon">&#10060;</span> Aufrechtes Rudern</li>
+                <li><span class="icon">&#10060;</span> Nackendrucken</li>
+                <li><span class="icon">&#10060;</span> Jede Ubung, die Schmerzen in der linken Schulter auslost</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3 style="color: var(--green);">Erlaubt &mdash; mit Vorsicht</h3>
+            <ul class="protocol-list">
+                <li><span class="icon">&#9989;</span> <strong>Brustpresse</strong> &mdash; ROM auf 90&deg; begrenzen</li>
+                <li><span class="icon">&#9989;</span> <strong>L410</strong> &mdash; Hintere Schulter (leichtes Gewicht, 15+ Wdh)</li>
+                <li><span class="icon">&#9989;</span> <strong>Face Pulls</strong> am L480 Kabelzug</li>
+                <li><span class="icon">&#9989;</span> <strong>Au&szlig;enrotation</strong> am Kabelzug (L480)</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3>Vor jedem Oberkorper-Training</h3>
+            <ol style="padding-left: 1.5rem;">
+                <li style="margin-bottom: 0.5rem;"><strong>5 Min Pendel-Ubungen</strong> &mdash; Arm locker hangen lassen, kreisen</li>
+                <li style="margin-bottom: 0.5rem;"><strong>Au&szlig;enrotation</strong> mit 1&ndash;2 kg (2 &times; 15)</li>
+                <li><strong>Schulterblatt-Retraktion</strong> &mdash; Schulterblatter zusammen, halten, losen (2 &times; 15)</li>
+            </ol>
+        </div>
+
+        <div class="warning-box">
+            <div class="icon">&#9888;&#65039;</div>
+            <div>
+                <p><strong>Goldene Regel:</strong> Bei Oberkorper-Ubungen NIE bis zum Muskelversagen gehen. Wenn die Muskeln versagen, ubernehmen die Gelenke die Last. Bei Arthrose ist das gefahrlich. Immer 2&ndash;3 Wiederholungen in Reserve lassen.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== ERNAHRUNG ==================== -->
+    <div id="nutrition" class="section">
+        <h2>Ernahrungsplan</h2>
+
+        <div class="card">
+            <h3>Grundprinzipien</h3>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                <div class="hero-stat" style="flex: 1; min-width: 200px;">
+                    <div class="hero-stat-label">Kalorienziel</div>
+                    <div class="hero-stat-value">1.800&ndash;2.000 kcal</div>
+                    <div style="font-size: 0.75rem; color: var(--text-dim);">Moderates Defizit</div>
+                </div>
+                <div class="hero-stat" style="flex: 1; min-width: 200px;">
+                    <div class="hero-stat-label">Eiwei&szlig;</div>
+                    <div class="hero-stat-value">Mind. 140 g/Tag</div>
+                    <div style="font-size: 0.75rem; color: var(--text-dim);">1,5 g pro kg &mdash; DER wichtigste Faktor</div>
+                </div>
+            </div>
+        </div>
+
+        <h3>Mahlzeiten</h3>
+
+        <div class="meal-card">
+            <div class="meal-time">Fruhstuck &mdash; Upgrade notwendig!</div>
+            <div class="meal-title">Aktuell nur ein Apfel &rarr; zu wenig Protein!</div>
+            <div class="meal-detail">
+                <strong>Option A:</strong> Magerquark (250 g) + Apfel + Haferflocken
+                <div class="meal-macros"><span class="macro-tag">~35 g Eiwei&szlig;</span><span class="macro-tag">~300 kcal</span></div>
+            </div>
+            <div class="meal-detail" style="margin-top: 0.5rem;">
+                <strong>Option B:</strong> 3 Eier (Ruhrei/gekocht) + Apfel
+                <div class="meal-macros"><span class="macro-tag">~20 g Eiwei&szlig;</span><span class="macro-tag">~280 kcal</span></div>
+            </div>
+            <div class="meal-detail" style="margin-top: 0.5rem;">
+                <strong>Option C:</strong> Proteinshake (30 g Whey + Milch) + Apfel
+                <div class="meal-macros"><span class="macro-tag">~30 g Eiwei&szlig;</span><span class="macro-tag">~250 kcal</span></div>
+            </div>
+        </div>
+
+        <div class="meal-card">
+            <div class="meal-time">Mittags &mdash; Frau kocht, WW-Rezepte</div>
+            <div class="meal-title">Weiter so!</div>
+            <div class="meal-detail">Darauf achten, dass immer eine gute Eiwei&szlig;quelle dabei ist (Hahnchen, Fisch, Hulsenfruchte, Tofu). Portion Gemuse/Salat dazu.</div>
+        </div>
+
+        <div class="meal-card">
+            <div class="meal-time">Abends &mdash; Strategie: Vorbereiten statt improvisieren</div>
+            <div class="meal-title">5er-Rotation schneller Gerichte</div>
+            <div class="meal-detail">
+                <ol style="padding-left: 1.2rem;">
+                    <li>Ruhrei (3 Eier) + gro&szlig;er Salat</li>
+                    <li>Thunfisch-Salat (Dose + Gemuse + leichtes Dressing)</li>
+                    <li>Hahnchenbrustfilet (fertig gegrillt) + Gemuse</li>
+                    <li>Magerquark-Bowl (250 g + Beeren + Nusse)</li>
+                    <li>Wrap mit Putenbrust, Salat, Senf (Protein-Wrap)</li>
+                </ol>
+                <p style="margin-top: 0.5rem; color: var(--text-dim);">Froster-Gerichte als Backup behalten &mdash; besser als Brot.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Trinken</h3>
+            <ul>
+                <li>Mindestens 2,5&ndash;3 Liter Wasser pro Tag</li>
+                <li>Kein Zucker in Getranken</li>
+                <li>Kaffee ist ok (ohne Zucker)</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ==================== DURCHHALTEN ==================== -->
+    <div id="mindset" class="section">
+        <h2>Durchhalte-Strategie</h2>
+
+        <div class="info-box" style="margin-bottom: 1.5rem;">
+            <strong>Das gro&szlig;te Risiko</strong> ist nicht das Training selbst, sondern dass du nach einer Unterbrechung nicht wieder anfangst. Darum geht es hier.
+        </div>
+
+        <div class="rule-card">
+            <span class="rule-number">1</span>
+            <div class="rule-title">Die &bdquo;Nie Null&ldquo;-Regel</div>
+            <div class="rule-body">
+                Wenn du krank bist, gestresst bist, oder das Kind krank ist: <strong>Du gehst trotzdem ins Gym &mdash; aber nur fur 15 Minuten.</strong> Nur 2 Ubungen, leichtes Gewicht. Es geht nicht um das Training, sondern darum, die Routine nicht zu brechen. Ein schlechtes Training ist 100x besser als kein Training.
+            </div>
+        </div>
+
+        <div class="rule-card">
+            <span class="rule-number">2</span>
+            <div class="rule-title">Der 2-Tage-Schutz</div>
+            <div class="rule-body">
+                Du darfst <strong>maximal 2 Tage am Stuck</strong> das Gym auslassen. Am 3. Tag gehst du, egal was ist (Nie-Null-Regel). Das verhindert, dass aus &bdquo;ein paar Tagen Pause&ldquo; Wochen werden.
+            </div>
+        </div>
+
+        <div class="rule-card">
+            <span class="rule-number">3</span>
+            <div class="rule-title">Gym = Termin</div>
+            <div class="rule-body">
+                Trage deine Gym-Zeiten als <strong>feste Termine</strong> in deinen Kalender ein. Behandle sie wie einen Kundentermin &mdash; absagen nur bei echtem Notfall. Am besten direkt morgens oder in der Mittagspause (bevor Ausreden kommen).
+            </div>
+        </div>
+
+        <div class="rule-card">
+            <span class="rule-number">4</span>
+            <div class="rule-title">Tracking schafft Verantwortung</div>
+            <div class="rule-body">
+                Tracke jeden Gym-Besuch. Streaks motivieren &mdash; &bdquo;43 Tage in Folge keine Woche ohne Training&ldquo; ist machtig. <em>Die Website wird genau das tun.</em>
+            </div>
+        </div>
+
+        <div class="rule-card">
+            <span class="rule-number">5</span>
+            <div class="rule-title">Ruckkehr nach Krankheit</div>
+            <div class="rule-body">
+                Feste Regel:
+                <ol style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                    <li><strong>Tag 1</strong> nach Genesung: Walking Pad, 30 Min spazieren</li>
+                    <li><strong>Tag 2:</strong> Gym, Nie-Null-Regel (15 Min, leicht)</li>
+                    <li><strong>Tag 3:</strong> Normales Training, aber mit 50% der Gewichte</li>
+                    <li><strong>Tag 4+:</strong> Zuruck zum Plan</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== PROGRESSION ==================== -->
+    <div id="progression" class="section">
+        <h2>Progression: Gewichte steigern</h2>
+
+        <div class="card">
+            <h3>So funktioniert die Steigerung</h3>
+            <p style="margin-bottom: 1rem;">Du trainierst mit 3 (oder 4) Satzen pro Ubung in aufsteigender Gewichtsreihenfolge:</p>
+
+            <div style="background: var(--surface2); border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin-bottom: 0.5rem;">Beispiel Beinpresse</div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <div class="pyramid-step" style="flex: 1; min-width: 130px;">
+                        <div class="pyramid-step-label">Satz 1</div>
+                        <div class="pyramid-step-value">40 kg &times; 15</div>
+                        <div style="font-size:0.75rem; color:var(--text-dim)">Aufwarmen</div>
+                    </div>
+                    <div class="pyramid-step" style="flex: 1; min-width: 130px;">
+                        <div class="pyramid-step-label">Satz 2</div>
+                        <div class="pyramid-step-value">60 kg &times; 12</div>
+                        <div style="font-size:0.75rem; color:var(--text-dim)">Mittelschwer</div>
+                    </div>
+                    <div class="pyramid-step" style="flex: 1; min-width: 130px;">
+                        <div class="pyramid-step-label">Satz 3</div>
+                        <div class="pyramid-step-value" style="color: var(--accent-light);">80 kg &times; 8&ndash;10</div>
+                        <div style="font-size:0.75rem; color:var(--text-dim)">2&ndash;3 Wdh Reserve</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Wann steigern?</h3>
+            <ul>
+                <li>Wenn der letzte Satz sich &bdquo;zu leicht&ldquo; anfuhlt (du konntest noch 4+ Wdh schaffen) &rarr; <strong>nachstes Training den Top-Satz um 2,5&ndash;5 kg steigern</strong></li>
+                <li>Automatisch steigen dann auch die leichteren Satze mit hoch</li>
+                <li><strong>Bei Oberkorper-Ubungen:</strong> Lieber langsamer steigern wegen der Schulter</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3>Trainingstagebuch</h3>
+            <p>Notiere fur jede Ubung den <strong>Top-Satz</strong> (schwerstes Gewicht &times; geschaffte Wdh).</p>
+            <p style="color: var(--accent-light); margin-top: 0.5rem;">Die Website wird das automatisch tracken.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function showSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+    window.scrollTo({ top: document.querySelector('.nav').offsetTop - 10, behavior: 'smooth' });
+}
+
+function showDay(group, dayId) {
+    document.querySelectorAll(`.day-content[data-group="${group}"]`).forEach(d => d.classList.remove('active'));
+    document.querySelectorAll(`.day-tabs[data-group="${group}"] .day-tab`).forEach(t => t.classList.remove('active'));
+    document.getElementById(dayId).classList.add('active');
+    event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>

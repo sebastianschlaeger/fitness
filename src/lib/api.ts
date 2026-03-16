@@ -48,6 +48,7 @@ export type ExerciseLog = {
   weight_kg: number
   reps: number
   is_top_set: number
+  is_completed: number
 }
 
 export function getLastExerciseSets(exerciseId: string) {
@@ -55,7 +56,11 @@ export function getLastExerciseSets(exerciseId: string) {
 }
 
 export function getWorkoutExercises(workoutId: number) {
-  return request<ExerciseLog[]>(`/exercises?workout_id=${workoutId}`)
+  return request<{ exercise_id: string }[]>(`/exercises?workout_id=${workoutId}`)
+}
+
+export function getExerciseSetData(workoutId: number, exerciseId: string) {
+  return request<ExerciseLog[]>(`/exercises?workout_id=${workoutId}&exercise_id=${exerciseId}`)
 }
 
 export function logExerciseSets(sets: Omit<ExerciseLog, 'id'>[]) {

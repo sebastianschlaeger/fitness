@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getCurrentPhase, getTodaysTraining, today } from '../lib/dates'
-import { getTodaysWorkout, startWorkout, getLastExerciseSets, logExerciseSets, completeExercise, type WorkoutLog } from '../lib/api'
+import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, type WorkoutLog } from '../lib/api'
 import SetInput from '../components/SetInput'
+import RestTimer from '../components/RestTimer'
 
 type SetData = { weight_kg: number; reps: number; completed: boolean }
 
@@ -17,23 +18,31 @@ export default function ExerciseDetail() {
   const [sets, setSets] = useState<SetData[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [timerSeconds, setTimerSeconds] = useState(0)
+  const [showTimer, setShowTimer] = useState(false)
+  const [finishing, setFinishing] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const setsRef = useRef<SetData[]>([])
+  const workoutRef = useRef<WorkoutLog | null>(null)
+  const timerNextRef = useRef<string | null>(null)
 
-  // Keep ref in sync
+  // Keep refs in sync
   useEffect(() => { setsRef.current = sets }, [sets])
+  useEffect(() => { workoutRef.current = workout }, [workout])
 
   const saveToServer = useCallback(async (setsToSave: SetData[]) => {
-    if (!workout || !exercise) return
+    const w = workoutRef.current
+    if (!w || !exercise) return
     setSaving(true)
     try {
       const exerciseSets = setsToSave.map((s, i) => ({
-        workout_id: workout.id,
+        workout_id: w.id,
         exercise_id: exercise.id,
         set_number: i + 1,
         weight_kg: s.weight_kg,
         reps: s.reps,
         is_top_set: i === setsToSave.length - 1 ? 1 : 0,
+        is_completed: s.completed ? 1 : 0,
       }))
       await logExerciseSets(exerciseSets)
     } catch (e) {
@@ -41,9 +50,9 @@ export default function ExerciseDetail() {
     } finally {
       setSaving(false)
     }
-  }, [workout, exercise])
+  }, [exercise])
 
-  // Debounced auto-save: saves 500ms after last change
+  // Debounced auto-save
   const triggerAutoSave = useCallback((updatedSets: SetData[]) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
@@ -51,50 +60,72 @@ export default function ExerciseDetail() {
     }, 500)
   }, [saveToServer])
 
-  // Save immediately on page leave
+  // Save on page leave via sendBeacon
   useEffect(() => {
     return () => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current)
-        // Fire save synchronously on unmount
-        if (workout && exercise && setsRef.current.some(s => s.weight_kg > 0 || s.reps > 0)) {
-          const exerciseSets = setsRef.current.map((s, i) => ({
-            workout_id: workout.id,
-            exercise_id: exercise.id,
-            set_number: i + 1,
-            weight_kg: s.weight_kg,
-            reps: s.reps,
-            is_top_set: i === setsRef.current.length - 1 ? 1 : 0,
-          }))
-          // Use sendBeacon for reliable save on page close
-          const blob = new Blob([JSON.stringify({ sets: exerciseSets })], { type: 'application/json' })
-          navigator.sendBeacon('/api/exercises', blob)
-        }
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      const w = workoutRef.current
+      if (w && exercise && setsRef.current.some(s => s.weight_kg > 0 || s.reps > 0)) {
+        const exerciseSets = setsRef.current.map((s, i) => ({
+          workout_id: w.id,
+          exercise_id: exercise.id,
+          set_number: i + 1,
+          weight_kg: s.weight_kg,
+          reps: s.reps,
+          is_top_set: i === setsRef.current.length - 1 ? 1 : 0,
+          is_completed: s.completed ? 1 : 0,
+        }))
+        const blob = new Blob([JSON.stringify({ sets: exerciseSets })], { type: 'application/json' })
+        navigator.sendBeacon('/api/exercises', blob)
       }
     }
-  }, [workout, exercise])
+  }, [exercise])
 
+  // Load exercise data — resets fully when exerciseId changes
   useEffect(() => {
+    setLoading(true)
+    setSets([])
+    setSaving(false)
+    setShowTimer(false)
+    setTimerSeconds(0)
+    setFinishing(false)
+    timerNextRef.current = null
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+
     async function load() {
       if (!exercise) return
 
-      // Ensure workout exists
       let w = await getTodaysWorkout()
       if (!w) {
         w = await startWorkout({ date: today(), phase: phase.phase, day_name: trainingDay!.name })
       }
       setWorkout(w)
 
-      // Pre-fill from last session
-      const lastSets = await getLastExerciseSets(exercise.id)
-      const prefilled: SetData[] = Array.from({ length: exercise.sets }, (_, i) => {
-        const last = lastSets.find(s => s.set_number === i + 1)
-        return {
-          weight_kg: last?.weight_kg || 0,
-          reps: last?.reps || 0,
-          completed: false,
-        }
-      })
+      // Try to load today's saved sets first
+      const savedSets = await getExerciseSetData(w.id, exercise.id)
+      let prefilled: SetData[]
+
+      if (savedSets.length > 0) {
+        prefilled = Array.from({ length: exercise.sets }, (_, i) => {
+          const saved = savedSets.find(s => s.set_number === i + 1)
+          return {
+            weight_kg: saved?.weight_kg || 0,
+            reps: saved?.reps || 0,
+            completed: saved?.is_completed === 1,
+          }
+        })
+      } else {
+        // Pre-fill from last session
+        const lastSets = await getLastExerciseSets(exercise.id)
+        prefilled = Array.from({ length: exercise.sets }, (_, i) => {
+          const last = lastSets.find(s => s.set_number === i + 1)
+          return {
+            weight_kg: last?.weight_kg || 0,
+            reps: last?.reps || 0,
+            completed: false,
+          }
+        })
+      }
       setSets(prefilled)
       setLoading(false)
     }
@@ -113,27 +144,61 @@ export default function ExerciseDetail() {
   function completeSet(index: number) {
     const updated = sets.map((s, i) => i === index ? { ...s, completed: true } : s)
     setSets(updated)
-    // Save immediately on set completion (no debounce)
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveToServer(updated)
+
+    // Check if all sets done → auto-complete exercise
+    const allCompleted = updated.every(s => s.completed)
+    if (allCompleted) {
+      finishExercise(updated)
+    } else {
+      // Start 90s rest timer between sets
+      setTimerSeconds(90)
+      setShowTimer(true)
+    }
   }
 
-  const allDone = sets.every(s => s.completed)
-
-  async function handleFinish() {
-    if (!workout || !exercise) return
-    // Final save + mark as completed
+  async function finishExercise(currentSets?: SetData[]) {
+    if (!workout || !exercise || finishing) return
+    setFinishing(true)
+    const setsToSave = currentSets || sets
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    await saveToServer(sets)
+    await saveToServer(setsToSave)
     await completeExercise(workout.id, exercise.id)
 
-    // Navigate to next exercise (or back to training if last)
     if (trainingDay) {
+      // Get all completed exercises to find the next uncompleted one
+      const completedExercises = await getWorkoutExercises(workout.id)
+      const completedIds = new Set(completedExercises.map(e => e.exercise_id))
+      completedIds.add(exercise.id) // Include the one we just completed
+
+      // Find next uncompleted exercise (starting after current, then wrapping)
       const currentIndex = trainingDay.exercises.findIndex(e => e.id === exerciseId)
-      const nextExercise = trainingDay.exercises[currentIndex + 1]
+      let nextExercise = null
+
+      // First check exercises after current position
+      for (let i = currentIndex + 1; i < trainingDay.exercises.length; i++) {
+        if (!completedIds.has(trainingDay.exercises[i].id)) {
+          nextExercise = trainingDay.exercises[i]
+          break
+        }
+      }
+      // Then check exercises before current position (skipped ones)
+      if (!nextExercise) {
+        for (let i = 0; i < currentIndex; i++) {
+          if (!completedIds.has(trainingDay.exercises[i].id)) {
+            nextExercise = trainingDay.exercises[i]
+            break
+          }
+        }
+      }
+
       if (nextExercise) {
-        navigate(`/training/${nextExercise.id}`, { replace: true })
+        timerNextRef.current = nextExercise.id
+        setTimerSeconds(120)
+        setShowTimer(true)
       } else {
+        // All exercises done → back to training overview
         navigate('/training')
       }
     } else {
@@ -141,18 +206,89 @@ export default function ExerciseDetail() {
     }
   }
 
+  function handleTimerDone() {
+    setShowTimer(false)
+    if (timerNextRef.current) {
+      const nextId = timerNextRef.current
+      timerNextRef.current = null
+      navigate(`/training/${nextId}`, { replace: true })
+    }
+  }
+
+  function handleTimerSkip() {
+    setShowTimer(false)
+    if (timerNextRef.current) {
+      const nextId = timerNextRef.current
+      timerNextRef.current = null
+      navigate(`/training/${nextId}`, { replace: true })
+    }
+  }
+
+  const allDone = sets.every(s => s.completed)
+  const startedAt = workout?.started_at ? new Date(workout.started_at) : null
+  const durationMinutes = startedAt ? Math.round((Date.now() - startedAt.getTime()) / 60000) : 0
+
+  // Custom image from localStorage
+  const customImage = localStorage.getItem(`exercise-image-${exercise.id}`)
+
+  function handleImageUpload() {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = () => {
+        localStorage.setItem(`exercise-image-${exercise!.id}`, reader.result as string)
+        window.location.reload()
+      }
+      reader.readAsDataURL(file)
+    }
+    input.click()
+  }
+
   return (
     <div className="p-4">
-      <button onClick={() => navigate('/training')} className="text-accent-light text-sm mb-3 flex items-center gap-1">
-        ← Zurück
-      </button>
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={() => navigate('/training')} className="text-accent-light text-sm flex items-center gap-1">
+          ← Zurück
+        </button>
+        {startedAt && durationMinutes > 0 && (
+          <span className="text-xs text-text-dim">
+            {durationMinutes < 60 ? `${durationMinutes} Min` : `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}m`}
+          </span>
+        )}
+      </div>
 
-      <img
-        src={exercise.equipmentImage}
-        alt={exercise.equipment}
-        className="w-full h-40 object-cover rounded-xl mb-3 bg-surface"
-        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-      />
+      {showTimer && (
+        <RestTimer
+          seconds={timerSeconds}
+          onDone={handleTimerDone}
+          onSkip={handleTimerSkip}
+          isExerciseTransition={timerNextRef.current !== null}
+          nextExerciseName={
+            timerNextRef.current
+              ? trainingDay?.exercises.find(e => e.id === timerNextRef.current)?.name
+              : undefined
+          }
+        />
+      )}
+
+      <div className="relative mb-3">
+        <img
+          src={customImage || exercise.equipmentImage}
+          alt={exercise.equipment}
+          className="w-full h-48 object-contain rounded-xl bg-surface"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+        />
+        <button
+          onClick={handleImageUpload}
+          className="absolute bottom-2 right-2 bg-surface/80 backdrop-blur text-text-dim rounded-lg px-2 py-1 text-xs border border-border"
+        >
+          📷 Foto ändern
+        </button>
+      </div>
 
       <h1 className="text-xl font-bold">{exercise.name}</h1>
       <p className="text-sm text-text-dim mb-2">{exercise.equipment}</p>
@@ -187,20 +323,31 @@ export default function ExerciseDetail() {
         </div>
       </div>
 
-      <button
-        onClick={handleFinish}
-        disabled={!allDone}
-        className={`w-full rounded-xl p-3 text-center font-semibold text-white transition-colors ${
-          allDone ? 'bg-accent active:bg-accent/80' : 'bg-accent/30 cursor-not-allowed'
-        }`}
-      >
-        {(() => {
-          if (!trainingDay) return 'Übung abschließen'
-          const currentIndex = trainingDay.exercises.findIndex(e => e.id === exerciseId)
-          const next = trainingDay.exercises[currentIndex + 1]
-          return next ? `Weiter → ${next.name}` : 'Letzte Übung abschließen'
-        })()}
-      </button>
+      {!allDone && (
+        <>
+          <button
+            onClick={() => finishExercise()}
+            className="w-full rounded-xl p-3 text-center font-semibold text-white transition-colors bg-accent/30 cursor-not-allowed mb-2"
+            disabled
+          >
+            Alle Sätze abschließen zum Weiter
+          </button>
+          <button
+            onClick={() => {
+              // Skip to next exercise (machine occupied)
+              if (!trainingDay) return
+              const currentIndex = trainingDay.exercises.findIndex(e => e.id === exerciseId)
+              const nextExercise = trainingDay.exercises[currentIndex + 1] || trainingDay.exercises[0]
+              if (nextExercise && nextExercise.id !== exerciseId) {
+                navigate(`/training/${nextExercise.id}`, { replace: true })
+              }
+            }}
+            className="w-full rounded-xl p-2 text-center text-sm text-accent-light font-medium"
+          >
+            Gerät besetzt → Überspringen
+          </button>
+        </>
+      )}
     </div>
   )
 }

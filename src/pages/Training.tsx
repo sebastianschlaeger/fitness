@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getCurrentPhase, getTodaysTraining, today, getDayOfWeek } from '../lib/dates'
-import { getTodaysWorkout, startWorkout, completeWorkout, getLastExerciseSets, getWorkoutExercises, type WorkoutLog, type ExerciseLog } from '../lib/api'
+import { getTodaysWorkout, startWorkout, completeWorkout, getLastExerciseSets, getWorkoutExercises, type WorkoutLog } from '../lib/api'
 import ExerciseCard from '../components/ExerciseCard'
 
 const DAY_NAMES = ['', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']

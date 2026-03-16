@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS exercise_logs (
   weight_kg REAL NOT NULL,
   reps INTEGER NOT NULL,
   is_top_set INTEGER NOT NULL DEFAULT 0,
+  is_completed INTEGER NOT NULL DEFAULT 0,
   UNIQUE(workout_id, exercise_id, set_number)
 );
 
