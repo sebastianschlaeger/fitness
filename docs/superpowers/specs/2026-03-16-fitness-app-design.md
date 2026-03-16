@@ -66,7 +66,7 @@ Two views:
 - "Training abschließen" button at bottom (disabled until all exercises done)
 - Tapping an exercise opens the Set Detail view
 
-**Determining "today's workout":** Based on current phase (derived from start date March 16, 2026) and day of week. Monday = first training day of the week, etc. On non-training days (e.g., Phase 1 Tuesday), show "Heute: Ruhetag (Walking Pad)" with a quick-log for walking pad. **Catch-up logic:** If a scheduled workout from earlier this week was not completed, the Training tab offers that workout instead of showing "Ruhetag". This way missed workouts can be made up on a different day.
+**Determining "today's workout":** Based on current phase (derived from start date March 16, 2026) and day of week. Monday = first training day of the week, etc. On non-training days (e.g., Phase 1 Tuesday), show "Heute: Ruhetag (Walking Pad)" with a quick-log for walking pad. No catch-up logic — missed workouts are simply missed. The Nie-Null-Regel handles motivation; the app does not create pressure by accumulating "owed" workouts.
 
 **Set Detail (tapping an exercise):**
 - Large equipment image at top
