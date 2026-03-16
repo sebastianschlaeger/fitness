@@ -24,6 +24,14 @@ CREATE TABLE IF NOT EXISTS exercise_logs (
 
 CREATE INDEX idx_exercise_logs_exercise ON exercise_logs(exercise_id);
 
+-- Tracks which exercises are explicitly finished (vs just auto-saved)
+CREATE TABLE IF NOT EXISTS exercise_completions (
+  workout_id INTEGER NOT NULL REFERENCES workout_logs(id),
+  exercise_id TEXT NOT NULL,
+  completed_at TEXT NOT NULL,
+  PRIMARY KEY (workout_id, exercise_id)
+);
+
 -- Daily body weight tracking
 CREATE TABLE IF NOT EXISTS body_weight (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

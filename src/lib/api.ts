@@ -62,6 +62,10 @@ export function logExerciseSets(sets: Omit<ExerciseLog, 'id'>[]) {
   return request<{ success: boolean }>('/exercises', { method: 'POST', body: JSON.stringify({ sets }) })
 }
 
+export function completeExercise(workoutId: number, exerciseId: string) {
+  return request<{ success: boolean }>('/exercises/complete', { method: 'POST', body: JSON.stringify({ workout_id: workoutId, exercise_id: exerciseId }) })
+}
+
 // --- Body Weight ---
 
 export type BodyWeightEntry = {

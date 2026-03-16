@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getCurrentPhase, getTodaysTraining, today } from '../lib/dates'
-import { getTodaysWorkout, startWorkout, getLastExerciseSets, logExerciseSets, type WorkoutLog } from '../lib/api'
+import { getTodaysWorkout, startWorkout, getLastExerciseSets, logExerciseSets, completeExercise, type WorkoutLog } from '../lib/api'
 import SetInput from '../components/SetInput'
 
 type SetData = { weight_kg: number; reps: number; completed: boolean }
@@ -121,11 +121,24 @@ export default function ExerciseDetail() {
   const allDone = sets.every(s => s.completed)
 
   async function handleFinish() {
-    if (!workout) return
-    // Final save
+    if (!workout || !exercise) return
+    // Final save + mark as completed
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     await saveToServer(sets)
-    navigate('/training')
+    await completeExercise(workout.id, exercise.id)
+
+    // Navigate to next exercise (or back to training if last)
+    if (trainingDay) {
+      const currentIndex = trainingDay.exercises.findIndex(e => e.id === exerciseId)
+      const nextExercise = trainingDay.exercises[currentIndex + 1]
+      if (nextExercise) {
+        navigate(`/training/${nextExercise.id}`, { replace: true })
+      } else {
+        navigate('/training')
+      }
+    } else {
+      navigate('/training')
+    }
   }
 
   return (
@@ -181,7 +194,12 @@ export default function ExerciseDetail() {
           allDone ? 'bg-accent active:bg-accent/80' : 'bg-accent/30 cursor-not-allowed'
         }`}
       >
-        Übung abschließen
+        {(() => {
+          if (!trainingDay) return 'Übung abschließen'
+          const currentIndex = trainingDay.exercises.findIndex(e => e.id === exerciseId)
+          const next = trainingDay.exercises[currentIndex + 1]
+          return next ? `Weiter → ${next.name}` : 'Letzte Übung abschließen'
+        })()}
       </button>
     </div>
   )

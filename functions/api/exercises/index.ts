@@ -5,8 +5,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const workoutId = url.searchParams.get('workout_id')
   if (!workoutId) return jsonResponse({ error: 'workout_id required' }, 400)
 
+  // Only return exercises that were explicitly completed (not just auto-saved)
   const result = await env.DB.prepare(
-    `SELECT DISTINCT exercise_id FROM exercise_logs WHERE workout_id = ?`
+    `SELECT exercise_id FROM exercise_completions WHERE workout_id = ?`
   ).bind(workoutId).all()
 
   return jsonResponse(result.results)
