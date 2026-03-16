@@ -8,9 +8,9 @@ export default function SetInput({ setNumber, totalSets, data, isTopSet, onChang
   onChange: (field: 'weight_kg' | 'reps', value: number) => void
   onComplete: () => void
 }) {
-  const labels = ['Aufwärmen', 'Mittel', 'Top-Satz']
   const label = setNumber === totalSets ? 'Top-Satz' :
-                setNumber === 1 ? 'Aufwärmen' : 'Mittel'
+                setNumber === 1 ? 'Aufwärmen' :
+                setNumber === totalSets - 1 ? 'Schwer' : 'Mittel'
 
   return (
     <div className={`flex items-center gap-3 py-3 px-3 rounded-lg ${
