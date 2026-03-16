@@ -4,6 +4,7 @@ import { getCurrentPhase, getTodaysTraining, today } from '../lib/dates'
 import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, type WorkoutLog } from '../lib/api'
 import SetInput from '../components/SetInput'
 import RestTimer from '../components/RestTimer'
+import CardioBlock from '../components/CardioBlock'
 
 type SetData = { weight_kg: number; reps: number; completed: boolean }
 
@@ -303,49 +304,64 @@ export default function ExerciseDetail() {
         </div>
       )}
 
-      <div className="bg-surface rounded-xl border border-border p-3 mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-bold">{exercise.sets} Sätze (Pyramide)</h3>
-          {saving && <span className="text-xs text-text-dim">Speichert...</span>}
-        </div>
-        <div className="space-y-1">
-          {sets.map((set, i) => (
-            <SetInput
-              key={i}
-              setNumber={i + 1}
-              totalSets={exercise.sets}
-              data={set}
-              isTopSet={i === sets.length - 1}
-              onChange={(field, value) => updateSet(i, field, value)}
-              onComplete={() => completeSet(i)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {!allDone && (
+      {exercise.isCardio ? (
+        <CardioBlock
+          exercise={exercise}
+          allDone={allDone}
+          onComplete={() => {
+            const updated = sets.map(s => ({ ...s, completed: true }))
+            setSets(updated)
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+            saveToServer(updated)
+            finishExercise(updated)
+          }}
+        />
+      ) : (
         <>
-          <button
-            onClick={() => finishExercise()}
-            className="w-full rounded-xl p-3 text-center font-semibold text-white transition-colors bg-accent/30 cursor-not-allowed mb-2"
-            disabled
-          >
-            Alle Sätze abschließen zum Weiter
-          </button>
-          <button
-            onClick={() => {
-              // Skip to next exercise (machine occupied)
-              if (!trainingDay) return
-              const currentIndex = trainingDay.exercises.findIndex(e => e.id === exerciseId)
-              const nextExercise = trainingDay.exercises[currentIndex + 1] || trainingDay.exercises[0]
-              if (nextExercise && nextExercise.id !== exerciseId) {
-                navigate(`/training/${nextExercise.id}`, { replace: true })
-              }
-            }}
-            className="w-full rounded-xl p-2 text-center text-sm text-accent-light font-medium"
-          >
-            Gerät besetzt → Überspringen
-          </button>
+          <div className="bg-surface rounded-xl border border-border p-3 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold">{exercise.sets} Sätze (Pyramide)</h3>
+              {saving && <span className="text-xs text-text-dim">Speichert...</span>}
+            </div>
+            <div className="space-y-1">
+              {sets.map((set, i) => (
+                <SetInput
+                  key={i}
+                  setNumber={i + 1}
+                  totalSets={exercise.sets}
+                  data={set}
+                  isTopSet={i === sets.length - 1}
+                  onChange={(field, value) => updateSet(i, field, value)}
+                  onComplete={() => completeSet(i)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {!allDone && (
+            <>
+              <button
+                onClick={() => finishExercise()}
+                className="w-full rounded-xl p-3 text-center font-semibold text-white transition-colors bg-accent/30 cursor-not-allowed mb-2"
+                disabled
+              >
+                Alle Sätze abschließen zum Weiter
+              </button>
+              <button
+                onClick={() => {
+                  if (!trainingDay) return
+                  const currentIndex = trainingDay.exercises.findIndex(e => e.id === exerciseId)
+                  const nextExercise = trainingDay.exercises[currentIndex + 1] || trainingDay.exercises[0]
+                  if (nextExercise && nextExercise.id !== exerciseId) {
+                    navigate(`/training/${nextExercise.id}`, { replace: true })
+                  }
+                }}
+                className="w-full rounded-xl p-2 text-center text-sm text-accent-light font-medium"
+              >
+                Gerät besetzt → Überspringen
+              </button>
+            </>
+          )}
         </>
       )}
     </div>

@@ -6,6 +6,8 @@ export type Exercise = {
   sets: number
   hints?: string
   shoulderWarning?: string
+  isCardio?: boolean
+  durationMinutes?: number // For cardio exercises
 }
 
 export type TrainingDay = {
@@ -26,6 +28,29 @@ export const PLAN_START_DATE = '2026-03-16'
 export const MAMMUTMARSCH_DATE = '2026-09-05'
 export const START_WEIGHT_KG = 94
 export const GOAL_WEIGHT_KG = 80
+
+// Reusable cardio definitions
+const CARDIO_LAUFBAND: Exercise = {
+  id: 'cardio-laufband',
+  name: 'Laufband (Steigung)',
+  equipment: 'Laufband',
+  equipmentImage: '/images/equipment/laufband.jpg',
+  sets: 1,
+  isCardio: true,
+  durationMinutes: 20,
+  hints: '5-6 km/h, 5-10% Steigung — Mammutmarsch-Vorbereitung',
+}
+
+const CARDIO_STAIRMASTER: Exercise = {
+  id: 'cardio-stairmaster',
+  name: 'Stairmaster',
+  equipment: 'Stairmaster',
+  equipmentImage: '/images/equipment/stairmaster.jpg',
+  sets: 1,
+  isCardio: true,
+  durationMinutes: 15,
+  hints: 'Moderates Tempo, gleichmäßig steigen',
+}
 
 export const phases: Phase[] = [
   {
@@ -95,6 +120,7 @@ export const phases: Phase[] = [
             sets: 4,
             hints: 'Kein Überstrecken',
           },
+          CARDIO_LAUFBAND,
         ],
       },
     ],
@@ -109,14 +135,16 @@ export const phases: Phase[] = [
         daysOfWeek: [1, 4], // Mo, Do
         name: 'Unterkörper',
         exercises: [
+          // Beinstrecker als Aufwärm-Übung zuerst (leichtes Gewicht, Knie vorbereiten)
+          { id: 'beinstrecker-technogym', name: 'Beinstrecker (Aufwärmen)', equipment: 'Technogym Leg Extension', equipmentImage: '/images/equipment/technogym-leg-extension.jpg', sets: 4, hints: 'Erste 2 Sätze leicht als Aufwärmen, dann steigern' },
           { id: 'beinpresse-pl700', name: 'Beinpresse', equipment: 'PL700 (Plate Loaded)', equipmentImage: '/images/equipment/bh-pl700-leg-press.jpg', sets: 4, hints: 'Hauptübung, hier darfst du schwer gehen' },
           { id: 'hack-squat-pl200', name: 'Hack Squat', equipment: 'PL200', equipmentImage: '/images/equipment/bh-pl200-hack-squat.jpg', sets: 4 },
-          { id: 'beinstrecker-technogym', name: 'Beinstrecker', equipment: 'Technogym Leg Extension', equipmentImage: '/images/equipment/technogym-leg-extension.jpg', sets: 4 },
           { id: 'beinbeuger-l030', name: 'Beinbeuger liegend', equipment: 'L030', equipmentImage: '/images/equipment/bh-l030-lying-leg-curl.jpg', sets: 4 },
           { id: 'hip-thrust-pl340', name: 'Hip Thrust', equipment: 'PL340', equipmentImage: '/images/equipment/bh-pl340-hip-thrust.jpg', sets: 4 },
           { id: 'waden-pl210', name: 'Waden', equipment: 'PL210 Seated Calf', equipmentImage: '/images/equipment/bh-pl210-seated-calf.jpg', sets: 4 },
           { id: 'adduktoren-technogym', name: 'Adduktoren', equipment: 'Technogym Adductor', equipmentImage: '/images/equipment/technogym-adductor.jpg', sets: 4 },
           { id: 'abduktoren-technogym', name: 'Abduktoren', equipment: 'Technogym Abductor', equipmentImage: '/images/equipment/technogym-abductor.jpg', sets: 4 },
+          CARDIO_STAIRMASTER,
         ],
       },
       {
@@ -127,10 +155,12 @@ export const phases: Phase[] = [
           { id: 'rudermaschine-pl300', name: 'Rudermaschine', equipment: 'PL300 Seated Row', equipmentImage: '/images/equipment/bh-pl300-seated-row.jpg', sets: 4 },
           { id: 'latzug-technogym', name: 'Latzug', equipment: 'Technogym Vertical Traction', equipmentImage: '/images/equipment/technogym-vertical-traction.jpg', sets: 4 },
           { id: 'butterfly-technogym', name: 'Butterfly', equipment: 'Technogym Pectoral', equipmentImage: '/images/equipment/technogym-pectoral.jpg', sets: 4, hints: 'Nicht zu weit öffnen' },
+          { id: 'seitheben-kurzhanteln', name: 'Seitheben', equipment: 'Kurzhanteln', equipmentImage: '/images/equipment/kurzhanteln.jpg', sets: 4, hints: 'Leichtes Gewicht (5-8 kg), kontrolliert heben. Schulter-safe!' },
           { id: 'hintere-schulter-l410', name: 'Hintere Schulter', equipment: 'L410 Rear Deltoid', equipmentImage: '/images/equipment/bh-l410-rear-deltoid.jpg', sets: 4, hints: 'Leichtes Gewicht, schulter-safe' },
           { id: 'oberer-ruecken-technogym', name: 'Oberer Rücken', equipment: 'Technogym Upper Back', equipmentImage: '/images/equipment/technogym-upper-back.jpg', sets: 4 },
           { id: 'bauchmaschine-technogym', name: 'Bauchmaschine', equipment: 'Technogym Abdominal Crunch', equipmentImage: '/images/equipment/technogym-abdominal-crunch.jpg', sets: 4 },
           { id: 'rueckenstrecker-technogym', name: 'Rückenstrecker', equipment: 'Technogym Lower Back', equipmentImage: '/images/equipment/technogym-lower-back.jpg', sets: 4 },
+          CARDIO_LAUFBAND,
         ],
       },
     ],
@@ -148,8 +178,9 @@ export const phases: Phase[] = [
           { id: 'brustpresse-technogym', name: 'Brustpresse', equipment: 'Technogym Chest Press', equipmentImage: '/images/equipment/technogym-chest-press.jpg', sets: 4, shoulderWarning: 'ROM begrenzen, 2-3 Wdh Reserve' },
           { id: 'schraegbrustpresse-l080', name: 'Schrägbrustpresse', equipment: 'L080', equipmentImage: '/images/equipment/bh-l080-chest-shoulder.jpg', sets: 4 },
           { id: 'butterfly-technogym', name: 'Butterfly', equipment: 'Technogym Pectoral', equipmentImage: '/images/equipment/technogym-pectoral.jpg', sets: 4 },
+          { id: 'seitheben-kurzhanteln', name: 'Seitheben', equipment: 'Kurzhanteln', equipmentImage: '/images/equipment/kurzhanteln.jpg', sets: 4, hints: 'Leicht (5-10 kg), seitlich heben bis Schulterhöhe' },
           { id: 'kabelzug-trizeps-l480', name: 'Kabelzug Trizeps', equipment: 'L480 Multifunktionsturm', equipmentImage: '/images/equipment/bh-l480-multistation.jpg', sets: 4 },
-          { id: 'bauchmaschine-technogym', name: 'Bauch', equipment: 'Technogym Abdominal Crunch', equipmentImage: '/images/equipment/technogym-abdominal-crunch.jpg', sets: 4 },
+          CARDIO_STAIRMASTER,
         ],
       },
       {
@@ -162,6 +193,7 @@ export const phases: Phase[] = [
           { id: 'hintere-schulter-l410', name: 'Hintere Schulter', equipment: 'L410 Rear Deltoid', equipmentImage: '/images/equipment/bh-l410-rear-deltoid.jpg', sets: 4 },
           { id: 'kabelzug-bizeps-l480', name: 'Kabelzug Bizeps', equipment: 'L480 Multifunktionsturm', equipmentImage: '/images/equipment/bh-l480-multistation.jpg', sets: 4 },
           { id: 'rueckenstrecker-technogym', name: 'Rückenstrecker', equipment: 'Technogym Lower Back', equipmentImage: '/images/equipment/technogym-lower-back.jpg', sets: 4 },
+          CARDIO_LAUFBAND,
         ],
       },
       {
@@ -173,7 +205,10 @@ export const phases: Phase[] = [
           { id: 'beinbeuger-l030', name: 'Beinbeuger', equipment: 'L030', equipmentImage: '/images/equipment/bh-l030-lying-leg-curl.jpg', sets: 4 },
           { id: 'beinstrecker-technogym', name: 'Beinstrecker', equipment: 'Technogym Leg Extension', equipmentImage: '/images/equipment/technogym-leg-extension.jpg', sets: 4 },
           { id: 'hip-thrust-pl340', name: 'Hip Thrust', equipment: 'PL340', equipmentImage: '/images/equipment/bh-pl340-hip-thrust.jpg', sets: 4 },
+          { id: 'adduktoren-technogym', name: 'Adduktoren', equipment: 'Technogym Adductor', equipmentImage: '/images/equipment/technogym-adductor.jpg', sets: 4 },
+          { id: 'abduktoren-technogym', name: 'Abduktoren', equipment: 'Technogym Abductor', equipmentImage: '/images/equipment/technogym-abductor.jpg', sets: 4 },
           { id: 'waden-pl210', name: 'Waden', equipment: 'PL210', equipmentImage: '/images/equipment/bh-pl210-seated-calf.jpg', sets: 4 },
+          CARDIO_STAIRMASTER,
         ],
       },
       {
@@ -184,9 +219,13 @@ export const phases: Phase[] = [
           { id: 'brustpresse-technogym', name: 'Brustpresse', equipment: 'Technogym Chest Press', equipmentImage: '/images/equipment/technogym-chest-press.jpg', sets: 4, shoulderWarning: 'ROM begrenzen, 2-3 Wdh Reserve' },
           { id: 'latzug-technogym', name: 'Latzug', equipment: 'Technogym Vertical Traction', equipmentImage: '/images/equipment/technogym-vertical-traction.jpg', sets: 4 },
           { id: 'butterfly-technogym', name: 'Butterfly', equipment: 'Technogym Pectoral', equipmentImage: '/images/equipment/technogym-pectoral.jpg', sets: 4 },
+          { id: 'seitheben-kurzhanteln', name: 'Seitheben', equipment: 'Kurzhanteln', equipmentImage: '/images/equipment/kurzhanteln.jpg', sets: 4, hints: 'Leicht, kontrolliert, Schulter-safe' },
           { id: 'hintere-schulter-l410', name: 'Hintere Schulter', equipment: 'L410', equipmentImage: '/images/equipment/bh-l410-rear-deltoid.jpg', sets: 4 },
-          { id: 'kabelzug-trizeps-l480', name: 'Kabelzug Trizeps + Bizeps', equipment: 'L480', equipmentImage: '/images/equipment/bh-l480-multistation.jpg', sets: 4 },
-          { id: 'bauch-ruecken-technogym', name: 'Bauch + Rücken', equipment: 'Technogym Abdominal + Lower Back', equipmentImage: '/images/equipment/technogym-abdominal-crunch.jpg', sets: 4 },
+          { id: 'kabelzug-trizeps-l480', name: 'Kabelzug Trizeps', equipment: 'L480 Multifunktionsturm', equipmentImage: '/images/equipment/bh-l480-multistation.jpg', sets: 4 },
+          { id: 'kabelzug-bizeps-l480', name: 'Kabelzug Bizeps', equipment: 'L480 Multifunktionsturm', equipmentImage: '/images/equipment/bh-l480-multistation.jpg', sets: 4 },
+          { id: 'bauchmaschine-technogym', name: 'Bauchmaschine', equipment: 'Technogym Abdominal Crunch', equipmentImage: '/images/equipment/technogym-abdominal-crunch.jpg', sets: 4 },
+          { id: 'rueckenstrecker-technogym', name: 'Rückenstrecker', equipment: 'Technogym Lower Back', equipmentImage: '/images/equipment/technogym-lower-back.jpg', sets: 4 },
+          CARDIO_LAUFBAND,
         ],
       },
       {
@@ -200,6 +239,7 @@ export const phases: Phase[] = [
           { id: 'abduktoren-technogym', name: 'Abduktoren', equipment: 'Technogym Abductor', equipmentImage: '/images/equipment/technogym-abductor.jpg', sets: 4 },
           { id: 'rear-kick-pl330', name: 'Rear Kick', equipment: 'PL330', equipmentImage: '/images/equipment/bh-pl330-rear-kick.jpg', sets: 4 },
           { id: 'waden-pl210', name: 'Waden', equipment: 'PL210', equipmentImage: '/images/equipment/bh-pl210-seated-calf.jpg', sets: 4 },
+          CARDIO_STAIRMASTER,
         ],
       },
     ],
