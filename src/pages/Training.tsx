@@ -1,9 +1,37 @@
 import { useEffect, useState } from 'react'
-import { getCurrentPhase, getTodaysTraining, today, getDayOfWeek } from '../lib/dates'
+import { getCurrentPhase, getTodaysTraining, today, getDayOfWeek, getUpcomingTrainings } from '../lib/dates'
 import { getTodaysWorkout, startWorkout, completeWorkout, getLastExerciseSets, getWorkoutExercises, type WorkoutLog } from '../lib/api'
 import ExerciseCard from '../components/ExerciseCard'
 
 const DAY_NAMES = ['', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+
+function UpcomingTrainings() {
+  const upcoming = getUpcomingTrainings(2)
+  if (upcoming.length === 0) return null
+
+  return (
+    <div className="mt-6">
+      <h2 className="text-sm font-bold text-text-dim uppercase tracking-wider mb-3">Nächste Trainings</h2>
+      <div className="space-y-3">
+        {upcoming.map(({ date, dayName, training }) => (
+          <div key={date} className="bg-surface rounded-xl border border-border p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-bold">{dayName}</span>
+              <span className="text-xs text-text-dim">{training.name}</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {training.exercises.map(ex => (
+                <span key={ex.id} className="text-xs bg-surface2 rounded-lg px-2 py-0.5 text-text-dim">
+                  {ex.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function Training() {
   const phase = getCurrentPhase()
@@ -50,10 +78,13 @@ export default function Training() {
 
   if (!trainingDay) {
     return (
-      <div className="p-4 text-center">
-        <div className="text-6xl mb-4">🧘</div>
-        <h1 className="text-xl font-bold mb-2">Heute: Ruhetag</h1>
-        <p className="text-text-dim">Walking Pad nicht vergessen!</p>
+      <div className="p-4">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🧘</div>
+          <h1 className="text-xl font-bold mb-2">Heute: Ruhetag</h1>
+          <p className="text-text-dim">Walking Pad nicht vergessen!</p>
+        </div>
+        <UpcomingTrainings />
       </div>
     )
   }
@@ -113,6 +144,8 @@ export default function Training() {
           Training abgeschlossen ✓
         </div>
       )}
+
+      <UpcomingTrainings />
     </div>
   )
 }

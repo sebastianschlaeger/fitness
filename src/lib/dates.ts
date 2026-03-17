@@ -73,6 +73,30 @@ export function getWeekDates(date: string = today()): string[] {
   })
 }
 
+/** Get the next N upcoming training days (looking ahead from tomorrow) */
+export function getUpcomingTrainings(count: number = 2): { date: string; dayName: string; training: TrainingDay }[] {
+  const result: { date: string; dayName: string; training: TrainingDay }[] = []
+  const d = new Date(today())
+
+  for (let i = 0; i < 30 && result.length < count; i++) {
+    d.setDate(d.getDate() + 1)
+    const dateStr = d.toISOString().split('T')[0]
+    const training = getTodaysTraining(dateStr)
+    if (training) {
+      const dow = getDayOfWeek(dateStr)
+      const names = ['', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+      const day = d.getDate()
+      const month = d.getMonth() + 1
+      result.push({
+        date: dateStr,
+        dayName: `${names[dow]} ${day}.${month}.`,
+        training,
+      })
+    }
+  }
+  return result
+}
+
 /** Week progress within current phase (e.g., week 3 of 4) */
 export function getPhaseWeekProgress(date: string = today()): { current: number; total: number } {
   const phase = getCurrentPhase(date)
