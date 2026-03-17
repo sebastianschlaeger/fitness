@@ -153,8 +153,8 @@ export default function ExerciseDetail() {
     if (allCompleted) {
       finishExercise(updated)
     } else {
-      // Start 90s rest timer between sets
-      setTimerSeconds(90)
+      // Start rest timer between sets (use phase setting or default 150s)
+      setTimerSeconds(phase.restSeconds || 150)
       setShowTimer(true)
     }
   }
@@ -320,7 +320,7 @@ export default function ExerciseDetail() {
         <>
           <div className="bg-surface rounded-xl border border-border p-3 mb-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-bold">{exercise.sets} Sätze (Pyramide)</h3>
+              <h3 className="text-sm font-bold">{exercise.sets} Sätze{exercise.reps ? ` × ${exercise.reps} Wdh` : ''}</h3>
               {saving && <span className="text-xs text-text-dim">Speichert...</span>}
             </div>
             <div className="space-y-1">

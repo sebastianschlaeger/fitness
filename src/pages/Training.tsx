@@ -110,6 +110,12 @@ export default function Training() {
       <div className="text-xs text-text-dim uppercase tracking-wider mb-1">
         Phase {phase.phase} · {DAY_NAMES[getDayOfWeek()]}: {trainingDay.name}
       </div>
+      {phase.info && (
+        <p className="text-xs text-text-dim mb-2">{phase.info}</p>
+      )}
+      {phase.rir && (
+        <div className="text-xs text-accent-light mb-3">RIR {phase.rir} · Pause ~{Math.round((phase.restSeconds || 150) / 60)} Min</div>
+      )}
 
       {!workout && (
         <button onClick={handleStart} className="w-full bg-accent rounded-xl p-3 text-center font-semibold text-white mb-4 active:bg-accent/80">

@@ -37,12 +37,30 @@ export function getDayOfWeek(date: string = today()): number {
 export function getTodaysTraining(date: string = today()): TrainingDay | null {
   const phase = getCurrentPhase(date)
   const dow = getDayOfWeek(date)
-  for (const day of phase.days) {
-    if (day.daysOfWeek.includes(dow)) {
-      return day
-    }
+
+  // Check if today is a training day at all
+  const matchingDay = phase.days.find(d => d.daysOfWeek.includes(dow))
+  if (!matchingDay) return null
+
+  // A/B alternation for phases with exactly 2 day templates
+  if (phase.alternating && phase.days.length === 2) {
+    const week = getWeekNumber(date)
+    const phaseWeek = week - phase.weeks[0] + 1 // 1-based week within phase
+
+    // Which session of the week is this? (1st, 2nd, 3rd based on daysOfWeek order)
+    const trainingDays = phase.days[0].daysOfWeek // both templates share same daysOfWeek
+    const sessionIndex = trainingDays.indexOf(dow) // 0, 1, or 2
+
+    // Odd phase-weeks: A-B-A (sessions 0,2 = A, session 1 = B)
+    // Even phase-weeks: B-A-B (sessions 0,2 = B, session 1 = A)
+    const isOddWeek = phaseWeek % 2 === 1
+    const isMiddleSession = sessionIndex === 1
+
+    const useA = isOddWeek ? !isMiddleSession : isMiddleSession
+    return useA ? phase.days[0] : phase.days[1]
   }
-  return null
+
+  return matchingDay
 }
 
 /** Days until Mammutmarsch */
