@@ -2,11 +2,41 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getCurrentPhase, getTodaysTraining, today } from '../lib/dates'
 import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, type WorkoutLog } from '../lib/api'
+import { orderExercises } from '../lib/exerciseOrder'
+import { useTimer } from '../lib/timer'
+import { useCustomImage, captureCustomImage, removeCustomImage } from '../lib/customImages'
 import SetInput from '../components/SetInput'
-import RestTimer from '../components/RestTimer'
 import CardioBlock from '../components/CardioBlock'
 
 type SetData = { weight_kg: number; reps: number; completed: boolean }
+
+const WARMUP_REST_SECONDS = 45
+
+/** Label für die Arbeitssätze (ohne den vorgelagerten Aufwärmsatz). */
+function workLabel(idx: number, count: number): string {
+  if (idx === count - 1) return 'Top-Satz'
+  if (idx === count - 2) return 'Schwer'
+  if (idx === 0) return 'Leicht'
+  return 'Mittel'
+}
+
+/** Nächste noch nicht erledigte Übung in der sortierten Liste (mit Wrap-around). */
+function findNextUnfinished<T extends { id: string }>(ordered: T[], currentId: string, completedIds: Set<string>): T | null {
+  const currentIndex = ordered.findIndex(e => e.id === currentId)
+  for (let i = currentIndex + 1; i < ordered.length; i++) {
+    if (!completedIds.has(ordered[i].id)) return ordered[i]
+  }
+  for (let i = 0; i < currentIndex; i++) {
+    if (!completedIds.has(ordered[i].id)) return ordered[i]
+  }
+  return null
+}
+
+/** Gespeicherten Satz vom Ende her zuordnen (Top-Satz auf Top-Satz). */
+function pickAligned<T extends { set_number: number }>(sortedAsc: T[], total: number, i: number): T | undefined {
+  const li = sortedAsc.length - 1 - (total - 1 - i)
+  return li >= 0 ? sortedAsc[li] : undefined
+}
 
 export default function ExerciseDetail() {
   const { exerciseId } = useParams<{ exerciseId: string }>()
@@ -14,18 +44,20 @@ export default function ExerciseDetail() {
   const phase = getCurrentPhase()
   const trainingDay = getTodaysTraining()
   const exercise = trainingDay?.exercises.find(e => e.id === exerciseId)
+  const timer = useTimer()
+  const customImage = useCustomImage(exercise?.id ?? '')
+
+  // Ein echter Aufwärmsatz (sehr leicht) vor den Arbeitssätzen — nur bei Kraft.
+  const warmupCount = exercise && !exercise.isCardio ? 1 : 0
 
   const [workout, setWorkout] = useState<WorkoutLog | null>(null)
   const [sets, setSets] = useState<SetData[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [timerSeconds, setTimerSeconds] = useState(0)
-  const [showTimer, setShowTimer] = useState(false)
   const [finishing, setFinishing] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const setsRef = useRef<SetData[]>([])
   const workoutRef = useRef<WorkoutLog | null>(null)
-  const timerNextRef = useRef<string | null>(null)
 
   // Keep refs in sync
   useEffect(() => { setsRef.current = sets }, [sets])
@@ -87,10 +119,7 @@ export default function ExerciseDetail() {
     setLoading(true)
     setSets([])
     setSaving(false)
-    setShowTimer(false)
-    setTimerSeconds(0)
     setFinishing(false)
-    timerNextRef.current = null
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
 
     async function load() {
@@ -102,13 +131,19 @@ export default function ExerciseDetail() {
       }
       setWorkout(w)
 
+      const total = warmupCount + exercise.sets
+
       // Try to load today's saved sets first
       const savedSets = await getExerciseSetData(w.id, exercise.id)
       let prefilled: SetData[]
 
       if (savedSets.length > 0) {
-        prefilled = Array.from({ length: exercise.sets }, (_, i) => {
-          const saved = savedSets.find(s => s.set_number === i + 1)
+        // Vom Ende her ausrichten — im Normalfall identisch zur Position,
+        // korrigiert aber den Fall, dass alte Daten (ohne Aufwärmsatz) mitten
+        // im Workout neu geladen werden (sonst rutscht der Top-Satz auf 'Schwer').
+        const sorted = [...savedSets].sort((a, b) => a.set_number - b.set_number)
+        prefilled = Array.from({ length: total }, (_, i) => {
+          const saved = pickAligned(sorted, total, i)
           return {
             weight_kg: saved?.weight_kg || 0,
             reps: saved?.reps || 0,
@@ -116,10 +151,12 @@ export default function ExerciseDetail() {
           }
         })
       } else {
-        // Pre-fill from last session
+        // Pre-fill from last session — ebenfalls vom Ende her ausgerichtet
+        // (Top-Satz auf Top-Satz), damit der neue Aufwärmsatz vorne leer bleibt.
         const lastSets = await getLastExerciseSets(exercise.id)
-        prefilled = Array.from({ length: exercise.sets }, (_, i) => {
-          const last = lastSets.find(s => s.set_number === i + 1)
+        const sorted = [...lastSets].sort((a, b) => a.set_number - b.set_number)
+        prefilled = Array.from({ length: total }, (_, i) => {
+          const last = pickAligned(sorted, total, i)
           return {
             weight_kg: last?.weight_kg || 0,
             reps: last?.reps || 0,
@@ -152,10 +189,11 @@ export default function ExerciseDetail() {
     const allCompleted = updated.every(s => s.completed)
     if (allCompleted) {
       finishExercise(updated)
+    } else if (index < warmupCount) {
+      // Kurze Pause nach dem Aufwärmsatz
+      timer.start(WARMUP_REST_SECONDS, 'Aufwärmen — kurze Pause')
     } else {
-      // Start rest timer between sets (use phase setting or default 150s)
-      setTimerSeconds(phase.restSeconds || 150)
-      setShowTimer(true)
+      timer.start(phase.restSeconds || 150, 'Satzpause')
     }
   }
 
@@ -168,38 +206,21 @@ export default function ExerciseDetail() {
     await completeExercise(workout.id, exercise.id)
 
     if (trainingDay) {
+      const ordered = orderExercises(trainingDay)
       // Get all completed exercises to find the next uncompleted one
       const completedExercises = await getWorkoutExercises(workout.id)
       const completedIds = new Set(completedExercises.map(e => e.exercise_id))
       completedIds.add(exercise.id) // Include the one we just completed
 
-      // Find next uncompleted exercise (starting after current, then wrapping)
-      const currentIndex = trainingDay.exercises.findIndex(e => e.id === exerciseId)
-      let nextExercise = null
-
-      // First check exercises after current position
-      for (let i = currentIndex + 1; i < trainingDay.exercises.length; i++) {
-        if (!completedIds.has(trainingDay.exercises[i].id)) {
-          nextExercise = trainingDay.exercises[i]
-          break
-        }
-      }
-      // Then check exercises before current position (skipped ones)
-      if (!nextExercise) {
-        for (let i = 0; i < currentIndex; i++) {
-          if (!completedIds.has(trainingDay.exercises[i].id)) {
-            nextExercise = trainingDay.exercises[i]
-            break
-          }
-        }
-      }
+      const nextExercise = findNextUnfinished(ordered, exercise.id, completedIds)
 
       if (nextExercise) {
-        timerNextRef.current = nextExercise.id
-        setTimerSeconds(120)
-        setShowTimer(true)
+        // Sofort die nächste Übung anzeigen — die Pause läuft oben weiter.
+        timer.start(phase.restSeconds || 120, `Pause vor: ${nextExercise.name}`)
+        navigate(`/training/${nextExercise.id}`, { replace: true })
       } else {
         // All exercises done → back to training overview
+        timer.stop()
         navigate('/training')
       }
     } else {
@@ -207,47 +228,28 @@ export default function ExerciseDetail() {
     }
   }
 
-  function handleTimerDone() {
-    setShowTimer(false)
-    if (timerNextRef.current) {
-      const nextId = timerNextRef.current
-      timerNextRef.current = null
-      navigate(`/training/${nextId}`, { replace: true })
+  // "Gerät besetzt" → nächste noch offene Übung (überspringt Erledigte), Stand sichern
+  async function handleSkip() {
+    if (!exercise || !trainingDay) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    await saveToServer(sets)
+    const ordered = orderExercises(trainingDay)
+    let completedIds = new Set<string>()
+    if (workout) {
+      const completed = await getWorkoutExercises(workout.id)
+      completedIds = new Set(completed.map(e => e.exercise_id))
+    }
+    const next = findNextUnfinished(ordered, exercise.id, completedIds)
+    if (next) {
+      navigate(`/training/${next.id}`, { replace: true })
+    } else {
+      navigate('/training')
     }
   }
 
-  function handleTimerSkip() {
-    setShowTimer(false)
-    if (timerNextRef.current) {
-      const nextId = timerNextRef.current
-      timerNextRef.current = null
-      navigate(`/training/${nextId}`, { replace: true })
-    }
-  }
-
-  const allDone = sets.every(s => s.completed)
+  const allDone = sets.length > 0 && sets.every(s => s.completed)
   const startedAt = workout?.started_at ? new Date(workout.started_at) : null
   const durationMinutes = startedAt ? Math.round((Date.now() - startedAt.getTime()) / 60000) : 0
-
-  // Custom image from localStorage
-  const customImage = localStorage.getItem(`exercise-image-${exercise.id}`)
-
-  function handleImageUpload() {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file) return
-      const reader = new FileReader()
-      reader.onload = () => {
-        localStorage.setItem(`exercise-image-${exercise!.id}`, reader.result as string)
-        window.location.reload()
-      }
-      reader.readAsDataURL(file)
-    }
-    input.click()
-  }
 
   return (
     <div className="p-4">
@@ -262,33 +264,34 @@ export default function ExerciseDetail() {
         )}
       </div>
 
-      {showTimer && (
-        <RestTimer
-          seconds={timerSeconds}
-          onDone={handleTimerDone}
-          onSkip={handleTimerSkip}
-          isExerciseTransition={timerNextRef.current !== null}
-          nextExerciseName={
-            timerNextRef.current
-              ? trainingDay?.exercises.find(e => e.id === timerNextRef.current)?.name
-              : undefined
-          }
-        />
-      )}
-
       <div className="relative mb-3">
         <img
           src={customImage || exercise.equipmentImage}
           alt={exercise.equipment}
           className="w-full h-48 object-contain rounded-xl bg-surface"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+          onError={(e) => {
+            const img = e.target as HTMLImageElement
+            if (!img.src.endsWith('/images/equipment/placeholder.svg')) {
+              img.src = '/images/equipment/placeholder.svg'
+            }
+          }}
         />
-        <button
-          onClick={handleImageUpload}
-          className="absolute bottom-2 right-2 bg-surface/80 backdrop-blur text-text-dim rounded-lg px-2 py-1 text-xs border border-border"
-        >
-          📷 Foto ändern
-        </button>
+        <div className="absolute bottom-2 right-2 flex gap-2">
+          {customImage && (
+            <button
+              onClick={() => removeCustomImage(exercise.id)}
+              className="bg-surface/80 backdrop-blur text-text-dim rounded-lg px-2 py-1 text-xs border border-border"
+            >
+              Entfernen
+            </button>
+          )}
+          <button
+            onClick={() => captureCustomImage(exercise.id)}
+            className="bg-surface/80 backdrop-blur text-text-dim rounded-lg px-2 py-1 text-xs border border-border"
+          >
+            📷 {customImage ? 'Neues Foto' : 'Foto aufnehmen'}
+          </button>
+        </div>
       </div>
 
       <h1 className="text-xl font-bold">{exercise.name}</h1>
@@ -320,21 +323,29 @@ export default function ExerciseDetail() {
         <>
           <div className="bg-surface rounded-xl border border-border p-3 mb-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-bold">{exercise.sets} Sätze{exercise.reps ? ` × ${exercise.reps} Wdh` : ''}</h3>
+              <h3 className="text-sm font-bold">
+                {warmupCount > 0 ? 'Aufwärmen + ' : ''}{exercise.sets} Sätze{exercise.reps ? ` × ${exercise.reps} Wdh` : ''}
+              </h3>
               {saving && <span className="text-xs text-text-dim">Speichert...</span>}
             </div>
             <div className="space-y-1">
-              {sets.map((set, i) => (
-                <SetInput
-                  key={i}
-                  setNumber={i + 1}
-                  totalSets={exercise.sets}
-                  data={set}
-                  isTopSet={i === sets.length - 1}
-                  onChange={(field, value) => updateSet(i, field, value)}
-                  onComplete={() => completeSet(i)}
-                />
-              ))}
+              {sets.map((set, i) => {
+                const isWarmup = i < warmupCount
+                const isTopSet = i === sets.length - 1
+                const label = isWarmup ? 'Aufwärmen' : workLabel(i - warmupCount, exercise.sets)
+                return (
+                  <SetInput
+                    key={i}
+                    setNumber={i + 1}
+                    label={label}
+                    isWarmup={isWarmup}
+                    isTopSet={isTopSet}
+                    data={set}
+                    onChange={(field, value) => updateSet(i, field, value)}
+                    onComplete={() => completeSet(i)}
+                  />
+                )
+              })}
             </div>
           </div>
 
@@ -348,14 +359,7 @@ export default function ExerciseDetail() {
                 Alle Sätze abschließen zum Weiter
               </button>
               <button
-                onClick={() => {
-                  if (!trainingDay) return
-                  const currentIndex = trainingDay.exercises.findIndex(e => e.id === exerciseId)
-                  const nextExercise = trainingDay.exercises[currentIndex + 1] || trainingDay.exercises[0]
-                  if (nextExercise && nextExercise.id !== exerciseId) {
-                    navigate(`/training/${nextExercise.id}`, { replace: true })
-                  }
-                }}
+                onClick={handleSkip}
                 className="w-full rounded-xl p-2 text-center text-sm text-accent-light font-medium"
               >
                 Gerät besetzt → Überspringen

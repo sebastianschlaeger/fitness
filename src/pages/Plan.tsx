@@ -1,6 +1,30 @@
 import { useState } from 'react'
-import { phases } from '../data/training-plan'
+import { phases, type Exercise } from '../data/training-plan'
 import { getCurrentPhase } from '../lib/dates'
+import { orderExercises } from '../lib/exerciseOrder'
+import { useCustomImage } from '../lib/customImages'
+
+function PlanExerciseRow({ ex }: { ex: Exercise }) {
+  const customImage = useCustomImage(ex.id)
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5">
+      <img
+        src={customImage || ex.equipmentImage}
+        alt={ex.equipment}
+        className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-surface2"
+        onError={(e) => { (e.target as HTMLImageElement).src = '/images/equipment/placeholder.svg' }}
+      />
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold">{ex.name}</div>
+        <div className="text-xs text-text-dim">{ex.equipment} · {ex.sets} Sätze</div>
+        {ex.hints && <div className="text-xs text-text-dim italic">{ex.hints}</div>}
+      </div>
+      {ex.shoulderWarning && (
+        <span className="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded flex-shrink-0">⚠️</span>
+      )}
+    </div>
+  )
+}
 
 const SHOULDER_FORBIDDEN = [
   'L490 — Seitheben-Maschine',
@@ -51,23 +75,8 @@ export default function Plan() {
         <div key={day.name} className="bg-surface rounded-xl border border-border overflow-hidden">
           <div className="bg-surface2 px-4 py-2 font-semibold text-sm">{day.name}</div>
           <div className="divide-y divide-border/50">
-            {day.exercises.map(ex => (
-              <div key={ex.id} className="flex items-center gap-3 px-4 py-2.5">
-                <img
-                  src={ex.equipmentImage}
-                  alt={ex.equipment}
-                  className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-surface2"
-                  onError={(e) => { (e.target as HTMLImageElement).src = '/images/equipment/placeholder.svg' }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold">{ex.name}</div>
-                  <div className="text-xs text-text-dim">{ex.equipment} · {ex.sets} Sätze</div>
-                  {ex.hints && <div className="text-xs text-text-dim italic">{ex.hints}</div>}
-                </div>
-                {ex.shoulderWarning && (
-                  <span className="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded flex-shrink-0">⚠️</span>
-                )}
-              </div>
+            {orderExercises(day).map(ex => (
+              <PlanExerciseRow key={ex.id} ex={ex} />
             ))}
           </div>
         </div>

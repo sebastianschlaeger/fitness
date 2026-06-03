@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { getCurrentPhase, getTodaysTraining, today, getDayOfWeek, getUpcomingTrainings } from '../lib/dates'
 import { getTodaysWorkout, startWorkout, completeWorkout, getLastExerciseSets, getWorkoutExercises, type WorkoutLog } from '../lib/api'
+import { useOrderedExercises } from '../lib/exerciseOrder'
 import ExerciseCard from '../components/ExerciseCard'
+import SortableExerciseList from '../components/SortableExerciseList'
 
 const DAY_NAMES = ['', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
@@ -36,10 +38,12 @@ function UpcomingTrainings() {
 export default function Training() {
   const phase = getCurrentPhase()
   const trainingDay = getTodaysTraining()
+  const exercises = useOrderedExercises(trainingDay)
   const [workout, setWorkout] = useState<WorkoutLog | null>(null)
   const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set())
   const [topSets, setTopSets] = useState<Record<string, { weight_kg: number; reps: number }>>({})
   const [loading, setLoading] = useState(true)
+  const [sortMode, setSortMode] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -89,9 +93,9 @@ export default function Training() {
     )
   }
 
-  const allDone = trainingDay.exercises.every(ex => completedExercises.has(ex.id))
+  const allDone = exercises.length > 0 && exercises.every(ex => completedExercises.has(ex.id))
   const doneCount = completedExercises.size
-  const totalCount = trainingDay.exercises.length
+  const totalCount = exercises.length
 
   async function handleStart() {
     const w = await startWorkout({ date: today(), phase: phase.phase, day_name: trainingDay!.name })
@@ -117,23 +121,42 @@ export default function Training() {
         <div className="text-xs text-accent-light mb-3">RIR {phase.rir} · Pause ~{Math.round((phase.restSeconds || 150) / 60)} Min</div>
       )}
 
-      {!workout && (
+      {!workout && !sortMode && (
         <button onClick={handleStart} className="w-full bg-accent rounded-xl p-3 text-center font-semibold text-white mb-4 active:bg-accent/80">
           Training starten
         </button>
       )}
 
-      <div className="space-y-2">
-        {trainingDay.exercises.map((ex, i) => {
-          const isCompleted = completedExercises.has(ex.id)
-          const firstUncompleted = trainingDay.exercises.findIndex(e => !completedExercises.has(e.id))
-          const status = isCompleted ? 'completed' as const : i === firstUncompleted ? 'current' as const : 'upcoming' as const
-
-          return <ExerciseCard key={ex.id} exercise={ex} status={status} topSet={topSets[ex.id]} />
-        })}
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-sm font-bold text-text-dim uppercase tracking-wider">Übungen</h2>
+        <button
+          onClick={() => setSortMode(s => !s)}
+          className={`text-xs font-semibold rounded-lg px-2.5 py-1 ${
+            sortMode ? 'bg-accent text-white' : 'bg-surface2 text-accent-light'
+          }`}
+        >
+          {sortMode ? 'Fertig' : '↕ Sortieren'}
+        </button>
       </div>
 
-      {workout && !workout.completed_at && (
+      {sortMode ? (
+        <>
+          <p className="text-xs text-text-dim mb-2">Am Griff rechts ziehen, um die Reihenfolge zu ändern.</p>
+          <SortableExerciseList dayName={trainingDay.name} exercises={exercises} />
+        </>
+      ) : (
+        <div className="space-y-2">
+          {exercises.map((ex, i) => {
+            const isCompleted = completedExercises.has(ex.id)
+            const firstUncompleted = exercises.findIndex(e => !completedExercises.has(e.id))
+            const status = isCompleted ? 'completed' as const : i === firstUncompleted ? 'current' as const : 'upcoming' as const
+
+            return <ExerciseCard key={ex.id} exercise={ex} status={status} topSet={topSets[ex.id]} />
+          })}
+        </div>
+      )}
+
+      {workout && !workout.completed_at && !sortMode && (
         <button
           onClick={handleComplete}
           disabled={!allDone}
@@ -145,7 +168,7 @@ export default function Training() {
         </button>
       )}
 
-      {workout?.completed_at && (
+      {workout?.completed_at && !sortMode && (
         <div className="bg-success/10 border border-success/20 rounded-xl p-4 text-center text-success font-semibold mt-4">
           Training abgeschlossen ✓
         </div>

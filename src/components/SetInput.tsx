@@ -1,23 +1,20 @@
 type SetData = { weight_kg: number; reps: number; completed: boolean }
 
-export default function SetInput({ setNumber, totalSets, data, isTopSet, onChange, onComplete }: {
+export default function SetInput({ setNumber, label, isWarmup, isTopSet, data, onChange, onComplete }: {
   setNumber: number
-  totalSets: number
-  data: SetData
+  label: string
+  isWarmup: boolean
   isTopSet: boolean
+  data: SetData
   onChange: (field: 'weight_kg' | 'reps', value: number) => void
   onComplete: () => void
 }) {
-  const label = setNumber === totalSets ? 'Top-Satz' :
-                setNumber === 1 ? 'Aufwärmen' :
-                setNumber === totalSets - 1 ? 'Schwer' : 'Mittel'
-
   return (
     <div className={`flex items-center gap-3 py-3 px-3 rounded-lg ${
-      isTopSet ? 'bg-accent/10' : ''
+      isTopSet ? 'bg-accent/10' : isWarmup ? 'bg-surface2/40' : ''
     } ${data.completed ? 'opacity-50' : ''}`}>
       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-        isTopSet ? 'bg-accent text-white' : 'bg-surface2 text-text-dim'
+        isTopSet ? 'bg-accent text-white' : isWarmup ? 'border border-dashed border-border text-text-dim' : 'bg-surface2 text-text-dim'
       }`}>
         {setNumber}
       </div>

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import type { Exercise } from '../data/training-plan'
+import { useCustomImage } from '../lib/customImages'
 
 type Status = 'completed' | 'current' | 'upcoming'
 
@@ -9,6 +10,7 @@ export default function ExerciseCard({ exercise, status, topSet }: {
   topSet?: { weight_kg: number; reps: number }
 }) {
   const navigate = useNavigate()
+  const customImage = useCustomImage(exercise.id)
 
   return (
     <div
@@ -26,7 +28,7 @@ export default function ExerciseCard({ exercise, status, topSet }: {
       </div>
 
       <img
-        src={exercise.equipmentImage}
+        src={customImage || exercise.equipmentImage}
         alt={exercise.equipment}
         className="w-11 h-11 rounded-lg object-cover flex-shrink-0 bg-surface"
         onError={(e) => { (e.target as HTMLImageElement).src = '/images/equipment/placeholder.svg' }}
