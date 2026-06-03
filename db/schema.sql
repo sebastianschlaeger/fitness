@@ -47,3 +47,12 @@ CREATE TABLE IF NOT EXISTS walking_pad (
   duration_minutes INTEGER NOT NULL,
   distance_km REAL NOT NULL
 );
+
+-- Geräteübergreifende Nutzer-Config (Geräte-Einstellungen, eigene Fotos,
+-- Sortier-Reihenfolge). Single-User → key-value genügt. Wird von der
+-- /api/kv-Function bei Bedarf auch zur Laufzeit angelegt (CREATE IF NOT EXISTS).
+CREATE TABLE IF NOT EXISTS app_kv (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);

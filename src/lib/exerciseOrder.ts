@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Exercise, TrainingDay } from '../data/training-plan'
+import { recordWriteImmediate } from './sync'
 
 /**
  * Selbst festgelegte Geräte-Reihenfolge pro Trainingstag (Drag-and-Drop).
@@ -26,7 +27,10 @@ export function getOrder(dayName: string): string[] | null {
 }
 
 export function setOrder(dayName: string, ids: string[]) {
-  localStorage.setItem(keyFor(dayName), JSON.stringify(ids))
+  const key = keyFor(dayName)
+  const json = JSON.stringify(ids)
+  localStorage.setItem(key, json)
+  void recordWriteImmediate(key, json) // geräteübergreifend persistieren
   window.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { dayName } }))
 }
 

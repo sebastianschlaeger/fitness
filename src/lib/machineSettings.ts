@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { recordWriteDebounced, recordDelete } from './sync'
 
 /**
  * Persönliche Geräte-Einstellungen (Sitzhöhe, Rückenlehne, ROM …) pro Maschine.
@@ -33,12 +34,18 @@ function writeMachineSettings(machineId: string, values: MachineSettingValues) {
   for (const [k, v] of Object.entries(values)) {
     if (v != null && v.trim() !== '') cleaned[k] = v
   }
+  const key = keyFor(machineId)
+  const empty = Object.keys(cleaned).length === 0
+  const json = JSON.stringify(cleaned)
   try {
-    if (Object.keys(cleaned).length === 0) localStorage.removeItem(keyFor(machineId))
-    else localStorage.setItem(keyFor(machineId), JSON.stringify(cleaned))
+    if (empty) localStorage.removeItem(key)
+    else localStorage.setItem(key, json)
   } catch {
     // Quota o.Ä. — Werte sind klein, daher praktisch nie ein Problem
   }
+  // geräteübergreifend persistieren (debounced, da pro Tastendruck aufgerufen)
+  if (empty) recordDelete(key)
+  else recordWriteDebounced(key, json)
   window.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { machineId } }))
 }
 

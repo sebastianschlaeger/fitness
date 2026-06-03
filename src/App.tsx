@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import TabBar from './components/TabBar'
 import FloatingTimer from './components/FloatingTimer'
 import { TimerProvider, useTimer } from './lib/timer'
+import { pullConfig } from './lib/sync'
 import Dashboard from './pages/Dashboard'
 import Training from './pages/Training'
 import ExerciseDetail from './pages/ExerciseDetail'
@@ -32,6 +34,9 @@ function Shell() {
 }
 
 export default function App() {
+  // Geräteübergreifenden Sync der Nutzer-Config beim Start anstoßen
+  useEffect(() => { pullConfig() }, [])
+
   return (
     <TimerProvider>
       <Shell />

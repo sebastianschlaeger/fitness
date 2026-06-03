@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { recordWriteImmediate, recordDelete, loadRemotePhoto } from './sync'
 
 /**
  * Eigene Gerätefotos. Werden pro Übungs-ID im localStorage gehalten (als
@@ -37,13 +38,16 @@ function notify(id: string) {
   window.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: { id } }))
 }
 
-export function setCustomImage(id: string, dataUrl: string) {
-  localStorage.setItem(keyFor(id), dataUrl)
+/** Speichert lokal + in D1. Gibt zurück, ob der Cloud-Sync geklappt hat. */
+export async function setCustomImage(id: string, dataUrl: string): Promise<boolean> {
+  try { localStorage.setItem(keyFor(id), dataUrl) } catch { /* Quota → D1 ist die Sicherung */ }
   notify(id)
+  return recordWriteImmediate(keyFor(id), dataUrl)
 }
 
 export function removeCustomImage(id: string) {
   localStorage.removeItem(keyFor(id))
+  recordDelete(keyFor(id)) // Tombstone → Löschung verbreitet sich geräteübergreifend
   notify(id)
 }
 
@@ -87,7 +91,12 @@ export function captureCustomImage(id: string, onError?: (msg: string) => void) 
     if (!file) return
     try {
       const dataUrl = await downscale(file)
-      setCustomImage(id, dataUrl)
+      const ok = await setCustomImage(id, dataUrl)
+      if (!ok) {
+        const msg = 'Foto lokal gespeichert, aber nicht in die Cloud synchronisiert (zu groß oder offline) — bei Verbindung erneut versuchen.'
+        if (onError) onError(msg)
+        else alert(msg)
+      }
     } catch (e) {
       const msg = isQuotaError(e)
         ? 'Speicher voll — bitte ein paar Fotos entfernen.'
@@ -105,6 +114,15 @@ export function useCustomImage(id: string): string | null {
 
   useEffect(() => {
     setImg(getCustomImage(id))
+
+    // Lazy-Download: auf einem neuen Gerät liegt das Foto evtl. nur in D1
+    let cancelled = false
+    if (id && getCustomImage(id) === null) {
+      loadRemotePhoto(keyFor(id)).then(value => {
+        if (!cancelled && value) setImg(value)
+      })
+    }
+
     function onChange(e: Event) {
       const detail = (e as CustomEvent<{ id: string }>).detail
       if (!detail || detail.id === id) setImg(getCustomImage(id))
@@ -115,6 +133,7 @@ export function useCustomImage(id: string): string | null {
     window.addEventListener(CHANGE_EVENT, onChange)
     window.addEventListener('storage', onStorage)
     return () => {
+      cancelled = true
       window.removeEventListener(CHANGE_EVENT, onChange)
       window.removeEventListener('storage', onStorage)
     }
