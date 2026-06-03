@@ -5,8 +5,10 @@ import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData
 import { orderExercises } from '../lib/exerciseOrder'
 import { useTimer } from '../lib/timer'
 import { useCustomImage, captureCustomImage, removeCustomImage } from '../lib/customImages'
+import { getMachineAdjustments, machineIdFromImage } from '../data/machineAdjustments'
 import SetInput from '../components/SetInput'
 import CardioBlock from '../components/CardioBlock'
+import MachineSettingsCard from '../components/MachineSettingsCard'
 
 type SetData = { weight_kg: number; reps: number; completed: boolean }
 
@@ -305,6 +307,13 @@ export default function ExerciseDetail() {
         <div className="bg-danger/10 border border-danger/20 rounded-lg px-3 py-2 mb-3">
           <p className="text-xs text-danger font-semibold">⚠️ {exercise.shoulderWarning}</p>
         </div>
+      )}
+
+      {getMachineAdjustments(exercise.equipmentImage).length > 0 && (
+        <MachineSettingsCard
+          machineId={machineIdFromImage(exercise.equipmentImage)}
+          adjustments={getMachineAdjustments(exercise.equipmentImage)}
+        />
       )}
 
       {exercise.isCardio ? (
