@@ -12,7 +12,8 @@ import MachineSettingsCard from '../components/MachineSettingsCard'
 
 type SetData = { weight_kg: number; reps: number; completed: boolean }
 
-const WARMUP_REST_SECONDS = 45
+/** Sekunden pro Satz in der Automatik (1-Minuten-Timer, dann „Start"). */
+const AUTO_SET_SECONDS = 60
 
 /** Label für die Arbeitssätze (ohne den vorgelagerten Aufwärmsatz). */
 function workLabel(idx: number, count: number): string {
@@ -57,34 +58,92 @@ export default function ExerciseDetail() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [finishing, setFinishing] = useState(false)
+  // Automatik: hands-free Ablauf mit 60s-Timer pro Satz und „Start"-Ansage.
+  const [auto, setAuto] = useState(false)
+  const [autoIndex, setAutoIndex] = useState(0)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const setsRef = useRef<SetData[]>([])
   const workoutRef = useRef<WorkoutLog | null>(null)
+  const autoRef = useRef(false)
+  const autoIndexRef = useRef(0)
+  // true während eines Satz-Wechsels / Starts (Timer kurz aus, gleich neuer Timer),
+  // damit der Watchdog den Übergang nicht mit einem echten externen Stop verwechselt.
+  const transitioningRef = useRef(false)
+  // Synchroner Re-Entry-Schutz für finishExercise (State `finishing` hinkt einen
+  // Commit hinterher → Doppeltipp/Doppel-Abschluss möglich).
+  const finishingRef = useRef(false)
+  // Serialisiert Speichervorgänge (siehe saveToServer).
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve())
+  // Immer auf die neueste advanceAuto-Closure zeigen, damit der einmalig
+  // registrierte onElapse-Hörer nicht auf veraltetem State arbeitet.
+  const advanceRef = useRef<() => void>(() => {})
 
   // Keep refs in sync
   useEffect(() => { setsRef.current = sets }, [sets])
   useEffect(() => { workoutRef.current = workout }, [workout])
+  useEffect(() => { autoRef.current = auto }, [auto])
+  useEffect(() => { autoIndexRef.current = autoIndex }, [autoIndex])
 
-  const saveToServer = useCallback(async (setsToSave: SetData[]) => {
-    const w = workoutRef.current
-    if (!w || !exercise) return
-    setSaving(true)
-    try {
-      const exerciseSets = setsToSave.map((s, i) => ({
-        workout_id: w.id,
-        exercise_id: exercise.id,
-        set_number: i + 1,
-        weight_kg: s.weight_kg,
-        reps: s.reps,
-        is_top_set: i === setsToSave.length - 1 ? 1 : 0,
-        is_completed: s.completed ? 1 : 0,
-      }))
-      await logExerciseSets(exerciseSets)
-    } catch (e) {
-      console.error('Auto-save failed:', e)
-    } finally {
-      setSaving(false)
+  // Timer-Ablauf abonnieren (nur natürliches Ende, nicht stop()) → Sequenz weiter
+  const { onElapse } = timer
+  useEffect(() => onElapse(() => advanceRef.current()), [onElapse])
+
+  // Startet den 60s-Timer für den gerade laufenden Satz. Der letzte Satz endet
+  // ohne „Start"-Ansage (cue 'none'); danach schließt advanceAuto die Übung ab.
+  useEffect(() => {
+    if (!auto || !exercise) return
+    const total = setsRef.current.length
+    if (total === 0 || autoIndex >= total) return
+    const isFinal = autoIndex === total - 1
+    const label = `${exercise.name} · Satz ${autoIndex + 1}/${total}${isFinal ? ' (letzter)' : ''}`
+    timer.start(AUTO_SET_SECONDS, label, { cue: isFinal ? 'none' : 'start' })
+    // exercise/timer sind stabil genug; bewusst nur auf auto+autoIndex reagieren.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auto, autoIndex])
+
+  // Wird der Timer von außen gestoppt (z.B. „Fertig" in der schwebenden Leiste),
+  // beenden wir die Automatik sauber. Unterscheidung über transitioningRef statt
+  // über eine Zeitheuristik: Beim Satz-Wechsel/Start ist der Timer nur kurz aus
+  // (transitioningRef === true), bei einem echten Stop bleibt er aus.
+  useEffect(() => {
+    if (!auto) return
+    if (timer.isRunning) {
+      transitioningRef.current = false // neuer Timer läuft → Übergang abgeschlossen
+      return
     }
+    if (transitioningRef.current) return // mitten im Wechsel, gleich startet der nächste
+    setAuto(false) // Timer steht ohne anstehenden Wechsel → externer Stop
+  }, [auto, timer.isRunning])
+
+  // Serialisiert: jeder Save wartet auf den vorherigen, damit ein älterer, noch
+  // fliegender Request (z.B. ein gerade abgefeuerter Debounce-Save mit
+  // completed:false) niemals einen neueren (completed:true) überschreibt — POSTs
+  // sind sonst nicht der Reihe nach garantiert (logExerciseSets ist ein Upsert).
+  const saveToServer = useCallback((setsToSave: SetData[]): Promise<void> => {
+    const w = workoutRef.current
+    if (!w || !exercise) return Promise.resolve()
+    const run = async () => {
+      setSaving(true)
+      try {
+        const exerciseSets = setsToSave.map((s, i) => ({
+          workout_id: w.id,
+          exercise_id: exercise.id,
+          set_number: i + 1,
+          weight_kg: s.weight_kg,
+          reps: s.reps,
+          is_top_set: i === setsToSave.length - 1 ? 1 : 0,
+          is_completed: s.completed ? 1 : 0,
+        }))
+        await logExerciseSets(exerciseSets)
+      } catch (e) {
+        console.error('Auto-save failed:', e)
+      } finally {
+        setSaving(false)
+      }
+    }
+    const next = saveChainRef.current.then(run, run)
+    saveChainRef.current = next
+    return next
   }, [exercise])
 
   // Debounced auto-save
@@ -122,6 +181,9 @@ export default function ExerciseDetail() {
     setSets([])
     setSaving(false)
     setFinishing(false)
+    finishingRef.current = false
+    setAuto(false)
+    setAutoIndex(0)
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
 
     async function load() {
@@ -181,52 +243,87 @@ export default function ExerciseDetail() {
     triggerAutoSave(updated)
   }
 
-  function completeSet(index: number) {
-    const updated = sets.map((s, i) => i === index ? { ...s, completed: true } : s)
-    setSets(updated)
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveToServer(updated)
+  // --- Automatik (hands-free) ---------------------------------------------
+  // Ablauf: Satz 1 sofort machen → 60s-Timer → „Start" → Satz 2 → … → letzter
+  // Satz → 60s ohne Ansage → Übung wird automatisch abgeschlossen.
 
-    // Check if all sets done → auto-complete exercise
-    const allCompleted = updated.every(s => s.completed)
-    if (allCompleted) {
-      finishExercise(updated)
-    } else if (index < warmupCount) {
-      // Kurze Pause nach dem Aufwärmsatz
-      timer.start(WARMUP_REST_SECONDS, 'Aufwärmen — kurze Pause')
-    } else {
-      timer.start(phase.restSeconds || 150, 'Satzpause')
-    }
+  function startAuto() {
+    // finishingRef prüfen: sonst könnte ein noch laufender manueller Abschluss den
+    // automatischen finishExercise am Ende der Sequenz verschlucken.
+    if (autoRef.current || finishingRef.current) return
+    // Beim ersten noch offenen Satz fortsetzen (nicht stur bei Satz 1) — wichtig
+    // nach „Automatik stoppen" und nach einem Reload mit teils erledigten Sätzen.
+    const firstOpen = sets.findIndex(s => !s.completed)
+    if (firstOpen === -1) return // alle Sätze schon erledigt → nichts zu tun
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    transitioningRef.current = true // bis der erste Timer läuft, kein Watchdog-Stop
+    setAutoIndex(firstOpen)
+    setAuto(true) // löst den [auto, autoIndex]-Effekt aus → startet Timer
   }
 
+  function stopAuto() {
+    setAuto(false)
+    timer.stop()
+  }
+
+  // Wird beim natürlichen Ablauf des 60s-Timers aufgerufen (über advanceRef).
+  function advanceAuto() {
+    if (!autoRef.current) return
+    // Offenen Debounce-Save abbrechen: dessen Snapshot hätte den gerade laufenden
+    // Satz noch completed:false und würde die hier gesetzte Completion überschreiben.
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    const i = autoIndexRef.current
+    const updated = setsRef.current.map((s, idx) => idx <= i ? { ...s, completed: true } : s)
+    setSets(updated)
+    if (i >= updated.length - 1) {
+      // Letzter Satz erledigt → Übung abschließen (saveToServer passiert dort).
+      setAuto(false)
+      finishExercise(updated)
+    } else {
+      saveToServer(updated)
+      transitioningRef.current = true // Timer ist gleich kurz aus → kein Watchdog-Stop
+      setAutoIndex(i + 1) // löst den Effekt aus → nächster 60s-Timer
+    }
+  }
+  advanceRef.current = advanceAuto
+
   async function finishExercise(currentSets?: SetData[]) {
-    if (!workout || !exercise || finishing) return
+    if (!workout || !exercise || finishingRef.current) return
+    finishingRef.current = true
     setFinishing(true)
     const setsToSave = currentSets || sets
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    await saveToServer(setsToSave)
-    await completeExercise(workout.id, exercise.id)
+    try {
+      await saveToServer(setsToSave)
+      await completeExercise(workout.id, exercise.id)
 
-    if (trainingDay) {
-      const ordered = orderExercises(trainingDay)
-      // Get all completed exercises to find the next uncompleted one
-      const completedExercises = await getWorkoutExercises(workout.id)
-      const completedIds = new Set(completedExercises.map(e => e.exercise_id))
-      completedIds.add(exercise.id) // Include the one we just completed
+      if (trainingDay) {
+        const ordered = orderExercises(trainingDay)
+        // Get all completed exercises to find the next uncompleted one
+        const completedExercises = await getWorkoutExercises(workout.id)
+        const completedIds = new Set(completedExercises.map(e => e.exercise_id))
+        completedIds.add(exercise.id) // Include the one we just completed
 
-      const nextExercise = findNextUnfinished(ordered, exercise.id, completedIds)
+        const nextExercise = findNextUnfinished(ordered, exercise.id, completedIds)
 
-      if (nextExercise) {
-        // Sofort die nächste Übung anzeigen — die Pause läuft oben weiter.
-        timer.start(phase.restSeconds || 120, `Pause vor: ${nextExercise.name}`)
-        navigate(`/training/${nextExercise.id}`, { replace: true })
+        if (nextExercise) {
+          // Sofort die nächste Übung anzeigen — die Pause läuft oben weiter.
+          timer.start(phase.restSeconds || 120, `Pause vor: ${nextExercise.name}`)
+          navigate(`/training/${nextExercise.id}`, { replace: true })
+        } else {
+          // All exercises done → back to training overview
+          timer.stop()
+          navigate('/training')
+        }
       } else {
-        // All exercises done → back to training overview
-        timer.stop()
         navigate('/training')
       }
-    } else {
-      navigate('/training')
+    } catch (e) {
+      // Netzwerk-/Serverfehler: nicht stecken bleiben — Button bleibt nutzbar,
+      // damit der User den Abschluss erneut auslösen kann.
+      console.error('Übung abschließen fehlgeschlagen:', e)
+      finishingRef.current = false
+      setFinishing(false)
     }
   }
 
@@ -349,31 +446,63 @@ export default function ExerciseDetail() {
                     label={label}
                     isWarmup={isWarmup}
                     isTopSet={isTopSet}
+                    isActive={auto && i === autoIndex}
                     data={set}
                     onChange={(field, value) => updateSet(i, field, value)}
-                    onComplete={() => completeSet(i)}
                   />
                 )
               })}
             </div>
           </div>
 
-          {!allDone && (
-            <>
+          {auto ? (
+            <div className="space-y-2">
+              <div className="rounded-xl bg-accent/10 border border-accent/30 p-3 text-center">
+                <div className="text-sm font-semibold text-accent-light">
+                  Automatik läuft · Satz {Math.min(autoIndex + 1, sets.length)}/{sets.length}
+                </div>
+                <div className="text-xs text-text-dim mt-0.5">
+                  Bei „Start" den nächsten Satz beginnen. Nach dem letzten Satz endet die Übung automatisch.
+                </div>
+              </div>
               <button
-                onClick={() => finishExercise()}
-                className="w-full rounded-xl p-3 text-center font-semibold text-white transition-colors bg-accent/30 cursor-not-allowed mb-2"
-                disabled
+                onClick={stopAuto}
+                className="w-full rounded-xl p-3 text-center font-semibold text-white bg-danger/80 active:bg-danger transition-colors"
               >
-                Alle Sätze abschließen zum Weiter
+                ⏹ Automatik stoppen
               </button>
-              <button
-                onClick={handleSkip}
-                className="w-full rounded-xl p-2 text-center text-sm text-accent-light font-medium"
-              >
-                Gerät besetzt → Überspringen
-              </button>
-            </>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {!allDone && (
+                <button
+                  onClick={startAuto}
+                  disabled={finishing}
+                  className={`w-full rounded-xl p-3 text-center font-semibold text-white transition-colors ${
+                    finishing ? 'bg-accent/40 cursor-wait' : 'bg-accent active:bg-accent/80'
+                  }`}
+                >
+                  ▶ Automatik starten · {sets.findIndex(s => !s.completed) > 0 ? 'fortsetzen' : `${sets.length} Sätze, je 60s`}
+                </button>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => finishExercise(sets.map(s => ({ ...s, completed: true })))}
+                  disabled={finishing}
+                  className={`flex-1 rounded-xl p-2 text-center text-sm font-medium border border-border transition-colors ${
+                    finishing ? 'text-text-dim cursor-wait' : 'text-text-dim active:bg-surface2'
+                  }`}
+                >
+                  {finishing ? 'Schließe ab…' : 'Übung abschließen'}
+                </button>
+                <button
+                  onClick={handleSkip}
+                  className="flex-1 rounded-xl p-2 text-center text-sm text-accent-light font-medium border border-border active:bg-surface2 transition-colors"
+                >
+                  Gerät besetzt
+                </button>
+              </div>
+            </div>
           )}
         </>
       )}

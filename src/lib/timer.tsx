@@ -1,9 +1,13 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
 
+/** Was beim Ablaufen des Timers ertönt. */
+type TimerCue = 'beep' | 'start' | 'none'
+
 type TimerState = {
   endsAt: number      // epoch ms when the timer fires
   totalSeconds: number
   label: string
+  cue?: TimerCue      // default 'beep'
 }
 
 type TimerContextValue = {
@@ -14,11 +18,16 @@ type TimerContextValue = {
   totalSeconds: number
   label: string
   /** start (or restart) the rest timer */
-  start: (seconds: number, label: string) => void
+  start: (seconds: number, label: string, opts?: { cue?: TimerCue }) => void
   /** add seconds to a running timer */
   add: (seconds: number) => void
   /** stop / dismiss the timer */
   stop: () => void
+  /**
+   * Auf das natürliche Ablaufen des Timers hören (nicht bei stop()).
+   * Gibt eine Abmelde-Funktion zurück. Treibt die Auto-Satz-Sequenz an.
+   */
+  onElapse: (cb: () => void) => () => void
 }
 
 const STORAGE_KEY = 'rest-timer'
@@ -36,11 +45,24 @@ function load(): TimerState | null {
   }
 }
 
+/**
+ * Persistiert NUR reguläre Pausentimer (cue 'beep'), die Reload/Navigation
+ * überleben sollen. Auto-Satz-Timer ('start'/'none') hängen am flüchtigen
+ * Automatik-Zustand (auto/autoIndex) und werden bewusst NICHT gespeichert —
+ * sonst feuert nach einem Reload eine verwaiste „Start"-Ansage, ohne dass die
+ * Sequenz weiterläuft.
+ */
+function persist(next: TimerState) {
+  if ((next.cue ?? 'beep') === 'beep') localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  else localStorage.removeItem(STORAGE_KEY)
+}
+
 // --- Audio ---------------------------------------------------------------
 // Ein einziger AudioContext, der beim ersten echten User-Tap entsperrt wird.
 // Auf iOS/Android startet ein AudioContext sonst 'suspended' und bleibt stumm,
 // wenn er erst im Timer-Callback (ausserhalb einer Geste) erzeugt wird.
 let sharedCtx: AudioContext | null = null
+let speechPrimed = false
 
 function getCtx(): AudioContext | null {
   try {
@@ -53,14 +75,41 @@ function getCtx(): AudioContext | null {
   }
 }
 
-/** Beim ersten Tap aufrufen (User-Gesture) — entsperrt Audio fuer spaetere Beeps. */
+/** Beim ersten Tap aufrufen (User-Gesture) — entsperrt Audio + Sprachausgabe. */
 function unlockAudio() {
   const ctx = getCtx()
   if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {})
+  // iOS/Safari geben Sprachausgabe nur frei, wenn sie einmal innerhalb einer
+  // echten Geste angestossen wurde — hier mit einer stummen Utterance "aufwecken".
+  try {
+    const synth = window.speechSynthesis
+    if (synth && !speechPrimed) {
+      speechPrimed = true
+      const u = new SpeechSynthesisUtterance(' ')
+      u.volume = 0
+      synth.speak(u)
+    }
+  } catch { /* speech not available */ }
 }
 
 function vibrate() {
   try { navigator.vibrate?.([200, 100, 200]) } catch { /* not supported */ }
+}
+
+/** Spricht ein Wort (z.B. "Start"). Fallback auf Beep, wenn keine Sprachausgabe. */
+function speak(text: string) {
+  try {
+    const synth = window.speechSynthesis
+    if (!synth) { playBeep(); return }
+    synth.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'de-DE'
+    u.rate = 1
+    u.volume = 1
+    synth.speak(u)
+  } catch {
+    playBeep()
+  }
 }
 
 function playBeep() {
@@ -89,6 +138,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<TimerState | null>(() => load())
   const [now, setNow] = useState(() => Date.now())
   const firedRef = useRef(false)
+  const listenersRef = useRef<Set<() => void>>(new Set())
 
   const remaining = state ? Math.max(0, Math.ceil((state.endsAt - now) / 1000)) : 0
   const isRunning = state !== null && remaining > 0
@@ -116,24 +166,39 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
 
-  // fire beep + clear when it hits zero
+  // fire cue + notify listeners + clear when it hits zero
   useEffect(() => {
     if (!state) return
     if (remaining <= 0 && !firedRef.current) {
       firedRef.current = true
-      playBeep()
+      const cue = state.cue ?? 'beep'
+      if (cue === 'beep') {
+        playBeep()
+      } else if (cue === 'start') {
+        vibrate()
+        speak('Start')
+      }
+      // cue === 'none' → still, nur visuell/Abschluss
+      // Auf das Ablaufen wartende Hörer benachrichtigen (Auto-Satz-Sequenz).
+      // Snapshot, damit Ab-/Anmeldungen während der Iteration nichts brechen.
+      Array.from(listenersRef.current).forEach(fn => { try { fn() } catch { /* ignore */ } })
       localStorage.removeItem(STORAGE_KEY)
       setState(null)
     }
   }, [remaining, state])
 
-  const start = useCallback((seconds: number, label: string) => {
+  const start = useCallback((seconds: number, label: string, opts?: { cue?: TimerCue }) => {
     unlockAudio() // start() kommt aus einem Tap → Gelegenheit zum Entsperren
     firedRef.current = false
-    const next: TimerState = { endsAt: Date.now() + seconds * 1000, totalSeconds: seconds, label }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+    const next: TimerState = { endsAt: Date.now() + seconds * 1000, totalSeconds: seconds, label, cue: opts?.cue ?? 'beep' }
+    persist(next)
     setNow(Date.now())
     setState(next)
+  }, [])
+
+  const onElapse = useCallback((cb: () => void) => {
+    listenersRef.current.add(cb)
+    return () => { listenersRef.current.delete(cb) }
   }, [])
 
   const add = useCallback((seconds: number) => {
@@ -144,7 +209,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         endsAt: prev.endsAt + seconds * 1000,
         totalSeconds: prev.totalSeconds + seconds,
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      persist(next)
       return next
     })
   }, [])
@@ -163,6 +228,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     start,
     add,
     stop,
+    onElapse,
   }
 
   return <TimerContext.Provider value={value}>{children}</TimerContext.Provider>

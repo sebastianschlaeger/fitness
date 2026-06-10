@@ -1,18 +1,19 @@
 type SetData = { weight_kg: number; reps: number; completed: boolean }
 
-export default function SetInput({ setNumber, label, isWarmup, isTopSet, data, onChange, onComplete }: {
+export default function SetInput({ setNumber, label, isWarmup, isTopSet, isActive, data, onChange }: {
   setNumber: number
   label: string
   isWarmup: boolean
   isTopSet: boolean
+  /** Aktuell laufender Satz in der Automatik — hervorgehoben. */
+  isActive: boolean
   data: SetData
   onChange: (field: 'weight_kg' | 'reps', value: number) => void
-  onComplete: () => void
 }) {
   return (
     <div className={`flex items-center gap-3 py-3 px-3 rounded-lg ${
-      isTopSet ? 'bg-accent/10' : isWarmup ? 'bg-surface2/40' : ''
-    } ${data.completed ? 'opacity-50' : ''}`}>
+      isActive ? 'ring-2 ring-accent bg-accent/10' : isTopSet ? 'bg-accent/10' : isWarmup ? 'bg-surface2/40' : ''
+    } ${data.completed && !isActive ? 'opacity-50' : ''}`}>
       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
         isTopSet ? 'bg-accent text-white' : isWarmup ? 'border border-dashed border-border text-text-dim' : 'bg-surface2 text-text-dim'
       }`}>
@@ -47,15 +48,14 @@ export default function SetInput({ setNumber, label, isWarmup, isTopSet, data, o
       />
       <span className="text-xs text-text-dim">Wdh</span>
 
-      <button
-        onClick={onComplete}
-        disabled={data.completed}
-        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ml-auto flex-shrink-0 ${
-          data.completed ? 'bg-success text-white' : 'border-2 border-border hover:border-success'
-        }`}
-      >
-        {data.completed && '✓'}
-      </button>
+      {/* Passiver Status — kein manuelles Abhaken mehr, die Automatik steuert. */}
+      <div className="w-7 h-7 ml-auto flex items-center justify-center flex-shrink-0">
+        {isActive
+          ? <span className="block w-2.5 h-2.5 rounded-full bg-accent animate-pulse" />
+          : data.completed
+            ? <span className="text-success text-sm">✓</span>
+            : null}
+      </div>
     </div>
   )
 }
