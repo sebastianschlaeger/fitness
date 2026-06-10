@@ -13,8 +13,16 @@ import MachineSettingsCard from '../components/MachineSettingsCard'
 
 type SetData = { weight_kg: number; reps: number; completed: boolean }
 
-/** Sekunden pro Satz in der Automatik (1-Minuten-Timer, dann „Start"). */
-const AUTO_SET_SECONDS = 60
+/**
+ * Automatik-Timing: Basis-Wartezeit für den ersten Satz, danach pro Satz +15 s —
+ * späte (schwere) Sätze brauchen mehr Pause als die ersten.
+ */
+const AUTO_BASE_SECONDS = 60
+const AUTO_STEP_SECONDS = 15
+/** Wartezeit für den Satz an Position `index` (0-basiert): 60 s, 75 s, 90 s, … */
+function autoSetSeconds(index: number): number {
+  return AUTO_BASE_SECONDS + index * AUTO_STEP_SECONDS
+}
 
 /** Label für die Arbeitssätze (ohne den vorgelagerten Aufwärmsatz). */
 function workLabel(idx: number, count: number): string {
@@ -59,7 +67,7 @@ export default function ExerciseDetail() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [finishing, setFinishing] = useState(false)
-  // Automatik: hands-free Ablauf mit 60s-Timer pro Satz und „Start"-Ansage.
+  // Automatik: hands-free Ablauf mit Timer pro Satz (60 s, je Satz +15 s) und „Start".
   const [auto, setAuto] = useState(false)
   const [autoIndex, setAutoIndex] = useState(0)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -94,18 +102,19 @@ export default function ExerciseDetail() {
   useEffect(() => onStop(() => setAuto(false)), [onStop])
 
   // Bildschirm wach halten, solange die Automatik läuft — sonst dunkelt das
-  // Handy ab, friert den 60s-Timer ein und die „Start"-Ansage bliebe stumm.
+  // Handy ab, friert den Satz-Timer ein und die „Start"-Ansage bliebe stumm.
   useWakeLock(auto)
 
-  // Startet den 60s-Timer für den gerade laufenden Satz. Der letzte Satz endet
-  // ohne „Start"-Ansage (cue 'none'); danach schließt advanceAuto die Übung ab.
+  // Startet den (mit jedem Satz um 15 s längeren) Timer für den laufenden Satz.
+  // Der letzte Satz endet ohne „Start"-Ansage (cue 'none'); danach schließt
+  // advanceAuto die Übung ab.
   useEffect(() => {
     if (!auto || !exercise) return
     const total = setsRef.current.length
     if (total === 0 || autoIndex >= total) return
     const isFinal = autoIndex === total - 1
     const label = `${exercise.name} · Satz ${autoIndex + 1}/${total}${isFinal ? ' (letzter)' : ''}`
-    timer.start(AUTO_SET_SECONDS, label, { cue: isFinal ? 'none' : 'start' })
+    timer.start(autoSetSeconds(autoIndex), label, { cue: isFinal ? 'none' : 'start' })
     // exercise/timer sind stabil genug; bewusst nur auf auto+autoIndex reagieren.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auto, autoIndex])
@@ -239,8 +248,8 @@ export default function ExerciseDetail() {
   }
 
   // --- Automatik (hands-free) ---------------------------------------------
-  // Ablauf: Satz 1 sofort machen → 60s-Timer → „Start" → Satz 2 → … → letzter
-  // Satz → 60s ohne Ansage → Übung wird automatisch abgeschlossen.
+  // Ablauf: Satz 1 sofort machen → Timer (60 s, je Satz +15 s) → „Start" → Satz 2
+  // → … → letzter Satz → Timer ohne Ansage → Übung wird automatisch abgeschlossen.
 
   function startAuto() {
     // finishingRef prüfen: sonst könnte ein noch laufender manueller Abschluss den
@@ -260,7 +269,7 @@ export default function ExerciseDetail() {
     timer.stop()
   }
 
-  // Wird beim natürlichen Ablauf des 60s-Timers aufgerufen (über advanceRef).
+  // Wird beim natürlichen Ablauf des Satz-Timers aufgerufen (über advanceRef).
   function advanceAuto() {
     if (!autoRef.current) return
     // Offenen Debounce-Save abbrechen: dessen Snapshot hätte den gerade laufenden
@@ -275,7 +284,7 @@ export default function ExerciseDetail() {
       finishExercise(updated)
     } else {
       saveToServer(updated)
-      setAutoIndex(i + 1) // löst den Effekt aus → nächster 60s-Timer
+      setAutoIndex(i + 1) // löst den Effekt aus → nächster (längerer) Satz-Timer
     }
   }
   advanceRef.current = advanceAuto
@@ -475,7 +484,7 @@ export default function ExerciseDetail() {
                     finishing ? 'bg-accent/40 cursor-wait' : 'bg-accent active:bg-accent/80'
                   }`}
                 >
-                  ▶ Automatik starten · {sets.findIndex(s => !s.completed) > 0 ? 'fortsetzen' : `${sets.length} Sätze, je 60s`}
+                  ▶ Automatik starten · {sets.findIndex(s => !s.completed) > 0 ? 'fortsetzen' : `${sets.length} Sätze · Pause ${AUTO_BASE_SECONDS}–${autoSetSeconds(sets.length - 1)}s`}
                 </button>
               )}
               <div className="flex gap-2">
