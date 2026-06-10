@@ -28,6 +28,12 @@ type TimerContextValue = {
    * Gibt eine Abmelde-Funktion zurück. Treibt die Auto-Satz-Sequenz an.
    */
   onElapse: (cb: () => void) => () => void
+  /**
+   * Auf einen echten externen Stopp hören — NUR über stop() (z.B. „Fertig" in der
+   * FloatingTimer-Leiste), NICHT beim natürlichen Ablauf. Gibt eine Abmelde-
+   * Funktion zurück. Lässt die Automatik bei einem manuellen Stopp sauber aussteigen.
+   */
+  onStop: (cb: () => void) => () => void
 }
 
 const STORAGE_KEY = 'rest-timer'
@@ -139,6 +145,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const [now, setNow] = useState(() => Date.now())
   const firedRef = useRef(false)
   const listenersRef = useRef<Set<() => void>>(new Set())
+  const stopListenersRef = useRef<Set<() => void>>(new Set())
 
   const remaining = state ? Math.max(0, Math.ceil((state.endsAt - now) / 1000)) : 0
   const isRunning = state !== null && remaining > 0
@@ -201,6 +208,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     return () => { listenersRef.current.delete(cb) }
   }, [])
 
+  const onStop = useCallback((cb: () => void) => {
+    stopListenersRef.current.add(cb)
+    return () => { stopListenersRef.current.delete(cb) }
+  }, [])
+
   const add = useCallback((seconds: number) => {
     setState(prev => {
       if (!prev) return prev
@@ -217,6 +229,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const stop = useCallback(() => {
     firedRef.current = true
     localStorage.removeItem(STORAGE_KEY)
+    // Echter Stopp (nicht natürlicher Ablauf) → Hörer benachrichtigen, bevor der
+    // State fällt. Snapshot, damit Ab-/Anmeldungen die Iteration nicht brechen.
+    Array.from(stopListenersRef.current).forEach(fn => { try { fn() } catch { /* ignore */ } })
     setState(null)
   }, [])
 
@@ -229,6 +244,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     add,
     stop,
     onElapse,
+    onStop,
   }
 
   return <TimerContext.Provider value={value}>{children}</TimerContext.Provider>

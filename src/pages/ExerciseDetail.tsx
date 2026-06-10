@@ -66,9 +66,6 @@ export default function ExerciseDetail() {
   const workoutRef = useRef<WorkoutLog | null>(null)
   const autoRef = useRef(false)
   const autoIndexRef = useRef(0)
-  // true während eines Satz-Wechsels / Starts (Timer kurz aus, gleich neuer Timer),
-  // damit der Watchdog den Übergang nicht mit einem echten externen Stop verwechselt.
-  const transitioningRef = useRef(false)
   // Synchroner Re-Entry-Schutz für finishExercise (State `finishing` hinkt einen
   // Commit hinterher → Doppeltipp/Doppel-Abschluss möglich).
   const finishingRef = useRef(false)
@@ -85,8 +82,15 @@ export default function ExerciseDetail() {
   useEffect(() => { autoIndexRef.current = autoIndex }, [autoIndex])
 
   // Timer-Ablauf abonnieren (nur natürliches Ende, nicht stop()) → Sequenz weiter
-  const { onElapse } = timer
+  const { onElapse, onStop } = timer
   useEffect(() => onElapse(() => advanceRef.current()), [onElapse])
+
+  // Echter externer Stopp (z.B. „Fertig" in der FloatingTimer-Leiste) → Automatik
+  // sauber beenden. Bewusst NICHT an `isRunning` gekoppelt: beim natürlichen Ablauf
+  // wird isRunning ebenfalls false, aber React feuert den Kind-Effekt VOR dem
+  // Eltern-Elapse-Effekt — ein isRunning-Watchdog würde die Sequenz dann fälschlich
+  // stoppen, bevor advanceAuto den nächsten Satz starten kann.
+  useEffect(() => onStop(() => setAuto(false)), [onStop])
 
   // Startet den 60s-Timer für den gerade laufenden Satz. Der letzte Satz endet
   // ohne „Start"-Ansage (cue 'none'); danach schließt advanceAuto die Übung ab.
@@ -100,20 +104,6 @@ export default function ExerciseDetail() {
     // exercise/timer sind stabil genug; bewusst nur auf auto+autoIndex reagieren.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auto, autoIndex])
-
-  // Wird der Timer von außen gestoppt (z.B. „Fertig" in der schwebenden Leiste),
-  // beenden wir die Automatik sauber. Unterscheidung über transitioningRef statt
-  // über eine Zeitheuristik: Beim Satz-Wechsel/Start ist der Timer nur kurz aus
-  // (transitioningRef === true), bei einem echten Stop bleibt er aus.
-  useEffect(() => {
-    if (!auto) return
-    if (timer.isRunning) {
-      transitioningRef.current = false // neuer Timer läuft → Übergang abgeschlossen
-      return
-    }
-    if (transitioningRef.current) return // mitten im Wechsel, gleich startet der nächste
-    setAuto(false) // Timer steht ohne anstehenden Wechsel → externer Stop
-  }, [auto, timer.isRunning])
 
   // Serialisiert: jeder Save wartet auf den vorherigen, damit ein älterer, noch
   // fliegender Request (z.B. ein gerade abgefeuerter Debounce-Save mit
@@ -256,7 +246,6 @@ export default function ExerciseDetail() {
     const firstOpen = sets.findIndex(s => !s.completed)
     if (firstOpen === -1) return // alle Sätze schon erledigt → nichts zu tun
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    transitioningRef.current = true // bis der erste Timer läuft, kein Watchdog-Stop
     setAutoIndex(firstOpen)
     setAuto(true) // löst den [auto, autoIndex]-Effekt aus → startet Timer
   }
@@ -281,7 +270,6 @@ export default function ExerciseDetail() {
       finishExercise(updated)
     } else {
       saveToServer(updated)
-      transitioningRef.current = true // Timer ist gleich kurz aus → kein Watchdog-Stop
       setAutoIndex(i + 1) // löst den Effekt aus → nächster 60s-Timer
     }
   }
