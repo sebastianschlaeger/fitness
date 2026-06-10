@@ -4,6 +4,7 @@ import { getCurrentPhase, getTodaysTraining, today } from '../lib/dates'
 import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, type WorkoutLog } from '../lib/api'
 import { orderExercises } from '../lib/exerciseOrder'
 import { useTimer } from '../lib/timer'
+import { useWakeLock } from '../lib/wakeLock'
 import { useCustomImage, captureCustomImage, removeCustomImage } from '../lib/customImages'
 import { getMachineAdjustments, machineIdFromImage } from '../data/machineAdjustments'
 import SetInput from '../components/SetInput'
@@ -91,6 +92,10 @@ export default function ExerciseDetail() {
   // Eltern-Elapse-Effekt — ein isRunning-Watchdog würde die Sequenz dann fälschlich
   // stoppen, bevor advanceAuto den nächsten Satz starten kann.
   useEffect(() => onStop(() => setAuto(false)), [onStop])
+
+  // Bildschirm wach halten, solange die Automatik läuft — sonst dunkelt das
+  // Handy ab, friert den 60s-Timer ein und die „Start"-Ansage bliebe stumm.
+  useWakeLock(auto)
 
   // Startet den 60s-Timer für den gerade laufenden Satz. Der letzte Satz endet
   // ohne „Start"-Ansage (cue 'none'); danach schließt advanceAuto die Übung ab.
