@@ -29,9 +29,9 @@ export default function SetInput({ setNumber, label, isWarmup, isTopSet, isActiv
         inputMode="decimal"
         value={data.weight_kg || ''}
         onChange={e => onChange('weight_kg', parseFloat(e.target.value) || 0)}
-        className={`w-16 bg-surface2 border rounded-lg px-2 py-1.5 text-center text-sm font-semibold ${
-          isTopSet ? 'border-accent' : 'border-border'
-        }`}
+        className={`bg-surface2 border rounded-lg px-2 text-center font-semibold ${
+          isActive ? 'w-20 py-2 text-xl' : 'w-16 py-1.5 text-sm'
+        } ${isTopSet ? 'border-accent' : 'border-border'}`}
         disabled={data.completed}
       />
       <span className="text-xs text-text-dim">kg</span>
@@ -41,9 +41,9 @@ export default function SetInput({ setNumber, label, isWarmup, isTopSet, isActiv
         inputMode="numeric"
         value={data.reps || ''}
         onChange={e => onChange('reps', parseInt(e.target.value) || 0)}
-        className={`w-14 bg-surface2 border rounded-lg px-2 py-1.5 text-center text-sm font-semibold ${
-          isTopSet ? 'border-accent' : 'border-border'
-        }`}
+        className={`bg-surface2 border rounded-lg px-2 text-center font-semibold ${
+          isActive ? 'w-16 py-2 text-xl' : 'w-14 py-1.5 text-sm'
+        } ${isTopSet ? 'border-accent' : 'border-border'}`}
         disabled={data.completed}
       />
       <span className="text-xs text-text-dim">Wdh</span>

@@ -283,12 +283,13 @@ export default function ExerciseDetail() {
     triggerAutoSave(updated)
   }
 
-  // Alle noch offenen Arbeitssätze (Gewicht > 0, nicht erledigt) um eine Stufe
-  // anheben. Leere Aufwärm-/Leersätze und schon erledigte Sätze bleiben unberührt.
+  // Alle noch offenen Arbeitssätze um eine Stufe anheben. Der Aufwärmsatz
+  // (Index < warmupCount) bleibt IMMER gleich, ebenso leere und erledigte Sätze.
   function bumpAllSets() {
-    if (!sets.some(s => !s.completed && s.weight_kg > 0)) return
-    const updated = sets.map(s =>
-      s.completed || s.weight_kg <= 0 ? s : { ...s, weight_kg: round1(s.weight_kg + step) }
+    const bumpable = (s: SetData, i: number) => i >= warmupCount && !s.completed && s.weight_kg > 0
+    if (!sets.some((s, i) => bumpable(s, i))) return
+    const updated = sets.map((s, i) =>
+      bumpable(s, i) ? { ...s, weight_kg: round1(s.weight_kg + step) } : s
     )
     setSets(updated)
     triggerAutoSave(updated)
@@ -516,11 +517,20 @@ export default function ExerciseDetail() {
 
           {auto ? (
             <div className="space-y-2">
-              <div className="rounded-xl bg-accent/10 border border-accent/30 p-3 text-center">
+              <div className="rounded-xl bg-accent/10 border border-accent/30 p-4 text-center">
                 <div className="text-sm font-semibold text-accent-light">
-                  Automatik läuft · Satz {Math.min(autoIndex + 1, sets.length)}/{sets.length}
+                  Satz {Math.min(autoIndex + 1, sets.length)}/{sets.length}
                 </div>
-                <div className="text-xs text-text-dim mt-0.5">
+                {sets[autoIndex] && (
+                  <div className="mt-1 leading-none">
+                    <span className="text-6xl font-extrabold tracking-tight tabular-nums">{sets[autoIndex].weight_kg || 0}</span>
+                    <span className="text-2xl font-bold text-text-dim"> kg</span>
+                    <span className="text-3xl font-bold text-text-dim mx-2">×</span>
+                    <span className="text-5xl font-extrabold tracking-tight tabular-nums">{sets[autoIndex].reps || exercise.reps || '–'}</span>
+                    <span className="text-2xl font-bold text-text-dim"> Wdh</span>
+                  </div>
+                )}
+                <div className="text-xs text-text-dim mt-2">
                   Bei „Start" den nächsten Satz beginnen. Nach dem letzten Satz endet die Übung automatisch.
                 </div>
               </div>
