@@ -23,16 +23,15 @@ function round1(n: number): number {
 }
 
 /**
- * „Eine Stufe" = der Sprung, den der Nutzer beim letzten Mal selbst gemacht hat:
- * Differenz zwischen dem letzten und vorletzten vergangenen Trainings-Max.
- * Heutiges Training wird ausgeklammert (die Sätze sind ja von letzter Session
- * vorbefüllt). Fallback auf DEFAULT_STEP_KG, wenn es noch keine zwei Sessions gibt
- * oder die Differenz nicht positiv ist.
+ * „Eine Stufe" = die Gewichtsdifferenz zwischen den letzten beiden Arbeitssätzen
+ * (Top-Satz minus dem Satz davor, z. B. 35 − 30 = 5 kg). Der Aufwärmsatz zählt
+ * nicht mit. Passt sich automatisch an, wenn die Sätze geändert werden.
+ * Fallback auf DEFAULT_STEP_KG, wenn es keine zwei Arbeitssätze mit Gewicht gibt.
  */
-function computeStep(history: ExerciseHistoryPoint[], todayDate: string): number {
-  const past = history.filter(h => h.date !== todayDate)
-  if (past.length >= 2) {
-    const delta = round1(past[past.length - 1].max_weight - past[past.length - 2].max_weight)
+function computeStep(sets: SetData[], warmupCount: number): number {
+  const work = sets.slice(warmupCount).filter(s => s.weight_kg > 0)
+  if (work.length >= 2) {
+    const delta = round1(work[work.length - 1].weight_kg - work[work.length - 2].weight_kg)
     if (delta > 0) return delta
   }
   return DEFAULT_STEP_KG
@@ -90,7 +89,6 @@ export default function ExerciseDetail() {
   const [workout, setWorkout] = useState<WorkoutLog | null>(null)
   const [sets, setSets] = useState<SetData[]>([])
   const [history, setHistory] = useState<ExerciseHistoryPoint[]>([])
-  const [step, setStep] = useState(DEFAULT_STEP_KG)
   const [showHistory, setShowHistory] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -212,7 +210,6 @@ export default function ExerciseDetail() {
     setLoading(true)
     setSets([])
     setHistory([])
-    setStep(DEFAULT_STEP_KG)
     setShowHistory(false)
     setSaving(false)
     setFinishing(false)
@@ -266,10 +263,9 @@ export default function ExerciseDetail() {
       setSets(prefilled)
       setLoading(false)
 
-      // Historie laden (nicht-blockierend für die Eingabe) → speist Chart + Stufe.
+      // Historie laden (nicht-blockierend für die Eingabe) → speist den Chart.
       const hist = await getExerciseHistory(exercise.id)
       setHistory(hist)
-      setStep(computeStep(hist, today()))
     }
     load()
   }, [exerciseId])
@@ -397,6 +393,7 @@ export default function ExerciseDetail() {
   }
 
   const allDone = sets.length > 0 && sets.every(s => s.completed)
+  const step = computeStep(sets, warmupCount)
   const startedAt = workout?.started_at ? new Date(workout.started_at) : null
   const durationMinutes = startedAt ? Math.round((Date.now() - startedAt.getTime()) / 60000) : 0
 
