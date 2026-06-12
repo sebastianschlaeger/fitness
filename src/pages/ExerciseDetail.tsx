@@ -11,6 +11,7 @@ import SetInput from '../components/SetInput'
 import CardioBlock from '../components/CardioBlock'
 import MachineSettingsCard from '../components/MachineSettingsCard'
 import ExerciseHistoryChart from '../components/ExerciseHistoryChart'
+import Fireworks from '../components/Fireworks'
 
 type SetData = { weight_kg: number; reps: number; completed: boolean }
 
@@ -90,6 +91,9 @@ export default function ExerciseDetail() {
   const [sets, setSets] = useState<SetData[]>([])
   const [history, setHistory] = useState<ExerciseHistoryPoint[]>([])
   const [showHistory, setShowHistory] = useState(false)
+  // Feuerwerk-Overlay: Zähler als Key → jeder Trigger startet die Animation neu.
+  const [fxId, setFxId] = useState(0)
+  const triggerFx = () => setFxId(id => id + 1)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [finishing, setFinishing] = useState(false)
@@ -289,6 +293,7 @@ export default function ExerciseDetail() {
     )
     setSets(updated)
     triggerAutoSave(updated)
+    triggerFx()
   }
 
   // --- Automatik (hands-free) ---------------------------------------------
@@ -357,8 +362,10 @@ export default function ExerciseDetail() {
           timer.start(phase.restSeconds || 120, `Pause vor: ${nextExercise.name}`)
           navigate(`/training/${nextExercise.id}`, { replace: true })
         } else {
-          // All exercises done → back to training overview
+          // All exercises done → Feuerwerk feiern, dann zurück zur Übersicht
           timer.stop()
+          triggerFx()
+          await new Promise(r => setTimeout(r, 1200))
           navigate('/training')
         }
       } else {
@@ -402,6 +409,7 @@ export default function ExerciseDetail() {
 
   return (
     <div className="p-4">
+      {fxId > 0 && <Fireworks key={fxId} onDone={() => setFxId(0)} />}
       <div className="flex items-center justify-between mb-3">
         <button onClick={() => navigate('/training')} className="text-accent-light text-sm flex items-center gap-1">
           ← Zurück
