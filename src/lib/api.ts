@@ -59,6 +59,13 @@ export function getWorkoutExercises(workoutId: number) {
   return request<{ exercise_id: string }[]>(`/exercises?workout_id=${workoutId}`)
 }
 
+export type ExerciseHistoryPoint = { date: string; max_weight: number }
+
+/** Verlauf des max. Gewichts je Trainingstag (aufsteigend nach Datum). */
+export function getExerciseHistory(exerciseId: string) {
+  return request<ExerciseHistoryPoint[]>(`/exercises/${exerciseId}/history`)
+}
+
 export function getExerciseSetData(workoutId: number, exerciseId: string) {
   return request<ExerciseLog[]>(`/exercises?workout_id=${workoutId}&exercise_id=${exerciseId}`)
 }

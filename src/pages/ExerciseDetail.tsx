@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getCurrentPhase, getTodaysTraining, today } from '../lib/dates'
-import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, type WorkoutLog } from '../lib/api'
+import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, getExerciseHistory, type WorkoutLog, type ExerciseHistoryPoint } from '../lib/api'
 import { orderExercises } from '../lib/exerciseOrder'
 import { useTimer } from '../lib/timer'
 import { useWakeLock } from '../lib/wakeLock'
@@ -10,8 +10,33 @@ import { getMachineAdjustments, machineIdFromImage } from '../data/machineAdjust
 import SetInput from '../components/SetInput'
 import CardioBlock from '../components/CardioBlock'
 import MachineSettingsCard from '../components/MachineSettingsCard'
+import ExerciseHistoryChart from '../components/ExerciseHistoryChart'
 
 type SetData = { weight_kg: number; reps: number; completed: boolean }
+
+/** Gewichtsstufe, falls noch keine zwei vergangenen Trainings zum Ableiten da sind. */
+const DEFAULT_STEP_KG = 2.5
+
+/** Auf 0,1 kg runden — gegen Float-Rauschen bei REAL-Gewichten. */
+function round1(n: number): number {
+  return Math.round(n * 10) / 10
+}
+
+/**
+ * „Eine Stufe" = der Sprung, den der Nutzer beim letzten Mal selbst gemacht hat:
+ * Differenz zwischen dem letzten und vorletzten vergangenen Trainings-Max.
+ * Heutiges Training wird ausgeklammert (die Sätze sind ja von letzter Session
+ * vorbefüllt). Fallback auf DEFAULT_STEP_KG, wenn es noch keine zwei Sessions gibt
+ * oder die Differenz nicht positiv ist.
+ */
+function computeStep(history: ExerciseHistoryPoint[], todayDate: string): number {
+  const past = history.filter(h => h.date !== todayDate)
+  if (past.length >= 2) {
+    const delta = round1(past[past.length - 1].max_weight - past[past.length - 2].max_weight)
+    if (delta > 0) return delta
+  }
+  return DEFAULT_STEP_KG
+}
 
 /**
  * Automatik-Timing: Basis-Wartezeit für den ersten Satz, danach pro Satz +15 s —
@@ -64,6 +89,9 @@ export default function ExerciseDetail() {
 
   const [workout, setWorkout] = useState<WorkoutLog | null>(null)
   const [sets, setSets] = useState<SetData[]>([])
+  const [history, setHistory] = useState<ExerciseHistoryPoint[]>([])
+  const [step, setStep] = useState(DEFAULT_STEP_KG)
+  const [showHistory, setShowHistory] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [finishing, setFinishing] = useState(false)
@@ -183,6 +211,9 @@ export default function ExerciseDetail() {
   useEffect(() => {
     setLoading(true)
     setSets([])
+    setHistory([])
+    setStep(DEFAULT_STEP_KG)
+    setShowHistory(false)
     setSaving(false)
     setFinishing(false)
     finishingRef.current = false
@@ -234,6 +265,11 @@ export default function ExerciseDetail() {
       }
       setSets(prefilled)
       setLoading(false)
+
+      // Historie laden (nicht-blockierend für die Eingabe) → speist Chart + Stufe.
+      const hist = await getExerciseHistory(exercise.id)
+      setHistory(hist)
+      setStep(computeStep(hist, today()))
     }
     load()
   }, [exerciseId])
@@ -243,6 +279,17 @@ export default function ExerciseDetail() {
 
   function updateSet(index: number, field: 'weight_kg' | 'reps', value: number) {
     const updated = sets.map((s, i) => i === index ? { ...s, [field]: value } : s)
+    setSets(updated)
+    triggerAutoSave(updated)
+  }
+
+  // Alle noch offenen Arbeitssätze (Gewicht > 0, nicht erledigt) um eine Stufe
+  // anheben. Leere Aufwärm-/Leersätze und schon erledigte Sätze bleiben unberührt.
+  function bumpAllSets() {
+    if (!sets.some(s => !s.completed && s.weight_kg > 0)) return
+    const updated = sets.map(s =>
+      s.completed || s.weight_kg <= 0 ? s : { ...s, weight_kg: round1(s.weight_kg + step) }
+    )
     setSets(updated)
     triggerAutoSave(updated)
   }
@@ -430,11 +477,21 @@ export default function ExerciseDetail() {
       ) : (
         <>
           <div className="bg-surface rounded-xl border border-border p-3 mb-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2 gap-2">
               <h3 className="text-sm font-bold">
                 {warmupCount > 0 ? 'Aufwärmen + ' : ''}{exercise.sets} Sätze{exercise.reps ? ` × ${exercise.reps} Wdh` : ''}
               </h3>
-              {saving && <span className="text-xs text-text-dim">Speichert...</span>}
+              <div className="flex items-center gap-2">
+                {saving && <span className="text-xs text-text-dim">Speichert...</span>}
+                {!auto && !allDone && (
+                  <button
+                    onClick={bumpAllSets}
+                    className="rounded-lg bg-accent/15 border border-accent/30 text-accent-light text-xs font-semibold px-2.5 py-1 active:bg-accent/25 transition-colors whitespace-nowrap"
+                  >
+                    ⬆ +{step} kg alle
+                  </button>
+                )}
+              </div>
             </div>
             <div className="space-y-1">
               {sets.map((set, i) => {
@@ -506,6 +563,21 @@ export default function ExerciseDetail() {
               </div>
             </div>
           )}
+
+          <div className="mt-4">
+            <button
+              onClick={() => setShowHistory(v => !v)}
+              className="w-full flex items-center justify-between rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-text-dim active:bg-surface2 transition-colors"
+            >
+              <span>📈 Verlauf · max. Gewicht{history.length > 0 ? ` (${history.length})` : ''}</span>
+              <span className="text-xs">{showHistory ? '▲' : '▼'}</span>
+            </button>
+            {showHistory && (
+              <div className="bg-surface rounded-xl border border-border p-3 mt-2">
+                <ExerciseHistoryChart data={history} />
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>
