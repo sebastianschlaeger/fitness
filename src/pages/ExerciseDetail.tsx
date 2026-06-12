@@ -394,6 +394,9 @@ export default function ExerciseDetail() {
 
   const allDone = sets.length > 0 && sets.every(s => s.completed)
   const step = computeStep(sets, warmupCount)
+  // Nächster auszuführender Satz: in der Automatik der laufende, sonst der erste
+  // noch offene. Treibt das große Gewicht-Readout (sichtbar = wie viel auflegen).
+  const nextIndex = auto ? autoIndex : sets.findIndex(s => !s.completed)
   const startedAt = workout?.started_at ? new Date(workout.started_at) : null
   const durationMinutes = startedAt ? Math.round((Date.now() - startedAt.getTime()) / 60000) : 0
 
@@ -512,24 +515,26 @@ export default function ExerciseDetail() {
             </div>
           </div>
 
+          {nextIndex >= 0 && sets[nextIndex] && (
+            <div className="rounded-xl bg-accent/10 border border-accent/30 p-4 text-center mb-4">
+              <div className="text-sm font-semibold text-accent-light">
+                {auto ? '' : 'Nächster '}Satz {nextIndex + 1}/{sets.length}
+                {nextIndex < warmupCount ? ' · Aufwärmen' : nextIndex === sets.length - 1 ? ' · Top-Satz' : ''}
+              </div>
+              <div className="mt-1 leading-none">
+                <span className="text-6xl font-extrabold tracking-tight tabular-nums">{sets[nextIndex].weight_kg || 0}</span>
+                <span className="text-2xl font-bold text-text-dim"> kg</span>
+                <span className="text-3xl font-bold text-text-dim mx-2">×</span>
+                <span className="text-5xl font-extrabold tracking-tight tabular-nums">{sets[nextIndex].reps || exercise.reps || '–'}</span>
+                <span className="text-2xl font-bold text-text-dim"> Wdh</span>
+              </div>
+            </div>
+          )}
+
           {auto ? (
             <div className="space-y-2">
-              <div className="rounded-xl bg-accent/10 border border-accent/30 p-4 text-center">
-                <div className="text-sm font-semibold text-accent-light">
-                  Satz {Math.min(autoIndex + 1, sets.length)}/{sets.length}
-                </div>
-                {sets[autoIndex] && (
-                  <div className="mt-1 leading-none">
-                    <span className="text-6xl font-extrabold tracking-tight tabular-nums">{sets[autoIndex].weight_kg || 0}</span>
-                    <span className="text-2xl font-bold text-text-dim"> kg</span>
-                    <span className="text-3xl font-bold text-text-dim mx-2">×</span>
-                    <span className="text-5xl font-extrabold tracking-tight tabular-nums">{sets[autoIndex].reps || exercise.reps || '–'}</span>
-                    <span className="text-2xl font-bold text-text-dim"> Wdh</span>
-                  </div>
-                )}
-                <div className="text-xs text-text-dim mt-2">
-                  Bei „Start" den nächsten Satz beginnen. Nach dem letzten Satz endet die Übung automatisch.
-                </div>
+              <div className="rounded-xl bg-surface border border-border p-3 text-center text-xs text-text-dim">
+                Automatik läuft · bei „Start" den nächsten Satz beginnen. Nach dem letzten Satz endet die Übung automatisch.
               </div>
               <button
                 onClick={stopAuto}
