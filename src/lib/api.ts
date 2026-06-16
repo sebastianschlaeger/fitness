@@ -26,8 +26,8 @@ export function getWorkouts(from: string, to: string) {
   return request<WorkoutLog[]>(`/workouts?from=${from}&to=${to}`)
 }
 
-export function getTodaysWorkout() {
-  return request<WorkoutLog | null>('/workouts/today')
+export function getTodaysWorkout(date?: string) {
+  return request<WorkoutLog | null>(`/workouts/today${date ? `?date=${date}` : ''}`)
 }
 
 export function startWorkout(data: { date: string; phase: number; day_name: string }) {

@@ -5,6 +5,13 @@ export function today(): string {
   return new Date().toISOString().split('T')[0]
 }
 
+/** Get ISO date string for yesterday (YYYY-MM-DD) — gleiche UTC-Basis wie today() */
+export function yesterday(): string {
+  const d = new Date(today())
+  d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().split('T')[0]
+}
+
 /** Calculate week number since plan start (1-based) */
 export function getWeekNumber(date: string = today()): number {
   const start = new Date(PLAN_START_DATE)

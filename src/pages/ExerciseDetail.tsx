@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getCurrentPhase, getTodaysTraining, today } from '../lib/dates'
 import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, getExerciseHistory, type WorkoutLog, type ExerciseHistoryPoint } from '../lib/api'
 import { orderExercises } from '../lib/exerciseOrder'
@@ -78,8 +78,14 @@ function pickAligned<T extends { set_number: number }>(sortedAsc: T[], total: nu
 export default function ExerciseDetail() {
   const { exerciseId } = useParams<{ exerciseId: string }>()
   const navigate = useNavigate()
-  const phase = getCurrentPhase()
-  const trainingDay = getTodaysTraining()
+  const [params] = useSearchParams()
+  // Nachhol-Modus: ?date=YYYY-MM-DD wird von der Training-Seite durchgereicht.
+  const dateParam = params.get('date')
+  const date = dateParam || today()
+  const isCatchUp = !!dateParam && dateParam !== today()
+  const dateQuery = isCatchUp ? `?date=${date}` : ''
+  const phase = getCurrentPhase(date)
+  const trainingDay = getTodaysTraining(date)
   const exercise = trainingDay?.exercises.find(e => e.id === exerciseId)
   const timer = useTimer()
   const customImage = useCustomImage(exercise?.id ?? '')
@@ -225,9 +231,9 @@ export default function ExerciseDetail() {
     async function load() {
       if (!exercise) return
 
-      let w = await getTodaysWorkout()
+      let w = await getTodaysWorkout(isCatchUp ? date : undefined)
       if (!w) {
-        w = await startWorkout({ date: today(), phase: phase.phase, day_name: trainingDay!.name })
+        w = await startWorkout({ date, phase: phase.phase, day_name: trainingDay!.name })
       }
       setWorkout(w)
 
@@ -272,7 +278,8 @@ export default function ExerciseDetail() {
       setHistory(hist)
     }
     load()
-  }, [exerciseId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exerciseId, date])
 
   if (!exercise) return <div className="p-4 text-danger">Übung nicht gefunden</div>
   if (loading) return <div className="p-4 text-text-dim">Laden...</div>
@@ -360,16 +367,16 @@ export default function ExerciseDetail() {
         if (nextExercise) {
           // Sofort die nächste Übung anzeigen — die Pause läuft oben weiter.
           timer.start(phase.restSeconds || 120, `Pause vor: ${nextExercise.name}`)
-          navigate(`/training/${nextExercise.id}`, { replace: true })
+          navigate(`/training/${nextExercise.id}${dateQuery}`, { replace: true })
         } else {
           // All exercises done → Feuerwerk feiern, dann zurück zur Übersicht
           timer.stop()
           triggerFx()
           await new Promise(r => setTimeout(r, 1200))
-          navigate('/training')
+          navigate(`/training${dateQuery}`)
         }
       } else {
-        navigate('/training')
+        navigate(`/training${dateQuery}`)
       }
     } catch (e) {
       // Netzwerk-/Serverfehler: nicht stecken bleiben — Button bleibt nutzbar,
@@ -393,9 +400,9 @@ export default function ExerciseDetail() {
     }
     const next = findNextUnfinished(ordered, exercise.id, completedIds)
     if (next) {
-      navigate(`/training/${next.id}`, { replace: true })
+      navigate(`/training/${next.id}${dateQuery}`, { replace: true })
     } else {
-      navigate('/training')
+      navigate(`/training${dateQuery}`)
     }
   }
 
@@ -411,8 +418,8 @@ export default function ExerciseDetail() {
     <div className="p-4">
       {fxId > 0 && <Fireworks key={fxId} onDone={() => setFxId(0)} />}
       <div className="flex items-center justify-between mb-3">
-        <button onClick={() => navigate('/training')} className="text-accent-light text-sm flex items-center gap-1">
-          ← Zurück
+        <button onClick={() => navigate(`/training${dateQuery}`)} className="text-accent-light text-sm flex items-center gap-1">
+          ← Zurück{isCatchUp ? ' · Nachhol-Modus' : ''}
         </button>
         {startedAt && durationMinutes > 0 && (
           <span className="text-xs text-text-dim">

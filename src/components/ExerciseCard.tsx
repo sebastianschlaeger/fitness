@@ -4,17 +4,19 @@ import { useCustomImage } from '../lib/customImages'
 
 type Status = 'completed' | 'current' | 'upcoming'
 
-export default function ExerciseCard({ exercise, status, topSet }: {
+export default function ExerciseCard({ exercise, status, topSet, dateQuery = '' }: {
   exercise: Exercise
   status: Status
   topSet?: { weight_kg: number; reps: number }
+  /** z.B. "?date=2026-06-15" im Nachhol-Modus — leer = heute */
+  dateQuery?: string
 }) {
   const navigate = useNavigate()
   const customImage = useCustomImage(exercise.id)
 
   return (
     <div
-      onClick={() => navigate(`/training/${exercise.id}`)}
+      onClick={() => navigate(`/training/${exercise.id}${dateQuery}`)}
       className={`flex items-center gap-3 bg-surface2 rounded-xl p-3 cursor-pointer transition-all active:scale-[0.98] ${
         status === 'completed' ? 'opacity-50' :
         status === 'current' ? 'border border-accent' :
