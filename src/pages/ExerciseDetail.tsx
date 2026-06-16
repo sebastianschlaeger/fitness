@@ -499,7 +499,7 @@ export default function ExerciseDetail() {
               </h3>
               <div className="flex items-center gap-2">
                 {saving && <span className="text-xs text-text-dim">Speichert...</span>}
-                {!auto && !allDone && (
+                {!allDone && (
                   <button
                     onClick={bumpAllSets}
                     className="rounded-lg bg-accent/15 border border-accent/30 text-accent-light text-xs font-semibold px-2.5 py-1 active:bg-accent/25 transition-colors whitespace-nowrap"
