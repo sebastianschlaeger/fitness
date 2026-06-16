@@ -4,12 +4,14 @@ import { useCustomImage } from '../lib/customImages'
 
 type Status = 'completed' | 'current' | 'upcoming'
 
-export default function ExerciseCard({ exercise, status, topSet, dateQuery = '' }: {
+export default function ExerciseCard({ exercise, status, topSet, dateQuery = '', deferred = false }: {
   exercise: Exercise
   status: Status
   topSet?: { weight_kg: number; reps: number }
   /** z.B. "?date=2026-06-15" im Nachhol-Modus — leer = heute */
   dateQuery?: string
+  /** Übersprungen ("Gerät besetzt") → wird am Ende nachgeholt */
+  deferred?: boolean
 }) {
   const navigate = useNavigate()
   const customImage = useCustomImage(exercise.id)
@@ -38,7 +40,11 @@ export default function ExerciseCard({ exercise, status, topSet, dateQuery = '' 
 
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-sm truncate">{exercise.name}</div>
-        <div className="text-xs text-text-dim truncate">{exercise.equipment}</div>
+        {deferred ? (
+          <div className="text-xs text-accent-light truncate">↩ Übersprungen · wird nachgeholt</div>
+        ) : (
+          <div className="text-xs text-text-dim truncate">{exercise.equipment}</div>
+        )}
       </div>
 
       <div className="text-right flex-shrink-0">

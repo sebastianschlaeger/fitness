@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { getCurrentPhase, getTodaysTraining, today, yesterday, getDayOfWeek, getUpcomingTrainings } from '../lib/dates'
 import { getTodaysWorkout, startWorkout, completeWorkout, getLastExerciseSets, getWorkoutExercises, type WorkoutLog } from '../lib/api'
 import { useOrderedExercises } from '../lib/exerciseOrder'
+import { getDeferred, clearDeferred, orderByDeferred } from '../lib/skipQueue'
 import ExerciseCard from '../components/ExerciseCard'
 import SortableExerciseList from '../components/SortableExerciseList'
 
@@ -60,6 +61,8 @@ export default function Training() {
   const [topSets, setTopSets] = useState<Record<string, { weight_kg: number; reps: number }>>({})
   const [loading, setLoading] = useState(true)
   const [sortMode, setSortMode] = useState(false)
+  // Übersprungene Übungen ("Gerät besetzt") dieses Workouts → ans Ende sortiert.
+  const [deferredIds, setDeferredIds] = useState<string[]>([])
   // Gestriges Training schon abgeschlossen? Steuert den Nachhol-Einstieg.
   const [yesterdayDone, setYesterdayDone] = useState(false)
 
@@ -71,11 +74,13 @@ export default function Training() {
     setWorkout(null)
     setCompletedExercises(new Set())
     setTopSets({})
+    setDeferredIds([])
     setYesterdayDone(false)
     async function load() {
       try {
         const w = await getTodaysWorkout(isCatchUp ? date : undefined)
         setWorkout(w)
+        if (w) setDeferredIds(getDeferred(w.id))
 
         // Nachhol-Einstieg: prüfen, ob das gestrige Training schon erledigt ist.
         if (!isCatchUp && yesterdaysTraining) {
@@ -148,9 +153,12 @@ export default function Training() {
     )
   }
 
-  const allDone = exercises.length > 0 && exercises.every(ex => completedExercises.has(ex.id))
+  // Übersprungene Übungen ans Ende der angezeigten Reihenfolge.
+  const displayExercises = orderByDeferred(exercises, deferredIds)
+  const deferredSet = new Set(deferredIds)
+  const allDone = displayExercises.length > 0 && displayExercises.every(ex => completedExercises.has(ex.id))
   const doneCount = completedExercises.size
-  const totalCount = exercises.length
+  const totalCount = displayExercises.length
 
   async function handleStart() {
     const w = await startWorkout({ date, phase: phase.phase, day_name: trainingDay!.name })
@@ -160,6 +168,7 @@ export default function Training() {
   async function handleComplete() {
     if (workout) {
       await completeWorkout(workout.id)
+      clearDeferred(workout.id)
       setWorkout({ ...workout, completed_at: new Date().toISOString() })
     }
   }
@@ -202,12 +211,12 @@ export default function Training() {
         </>
       ) : (
         <div className="space-y-2">
-          {exercises.map((ex, i) => {
+          {displayExercises.map((ex, i) => {
             const isCompleted = completedExercises.has(ex.id)
-            const firstUncompleted = exercises.findIndex(e => !completedExercises.has(e.id))
+            const firstUncompleted = displayExercises.findIndex(e => !completedExercises.has(e.id))
             const status = isCompleted ? 'completed' as const : i === firstUncompleted ? 'current' as const : 'upcoming' as const
 
-            return <ExerciseCard key={ex.id} exercise={ex} status={status} topSet={topSets[ex.id]} dateQuery={dateQuery} />
+            return <ExerciseCard key={ex.id} exercise={ex} status={status} topSet={topSets[ex.id]} dateQuery={dateQuery} deferred={!isCompleted && deferredSet.has(ex.id)} />
           })}
         </div>
       )}

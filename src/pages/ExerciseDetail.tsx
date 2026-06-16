@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getCurrentPhase, getTodaysTraining, today } from '../lib/dates'
 import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, getExerciseHistory, type WorkoutLog, type ExerciseHistoryPoint } from '../lib/api'
 import { orderExercises } from '../lib/exerciseOrder'
+import { getDeferred, addDeferred, orderByDeferred } from '../lib/skipQueue'
 import { useTimer } from '../lib/timer'
 import { useWakeLock } from '../lib/wakeLock'
 import { useCustomImage, captureCustomImage, removeCustomImage } from '../lib/customImages'
@@ -356,7 +357,8 @@ export default function ExerciseDetail() {
       await completeExercise(workout.id, exercise.id)
 
       if (trainingDay) {
-        const ordered = orderExercises(trainingDay)
+        // Übersprungene Übungen ans Ende → werden zuletzt automatisch nachgeholt.
+        const ordered = orderByDeferred(orderExercises(trainingDay), getDeferred(workout.id))
         // Get all completed exercises to find the next uncompleted one
         const completedExercises = await getWorkoutExercises(workout.id)
         const completedIds = new Set(completedExercises.map(e => e.exercise_id))
@@ -387,17 +389,16 @@ export default function ExerciseDetail() {
     }
   }
 
-  // "Gerät besetzt" → nächste noch offene Übung (überspringt Erledigte), Stand sichern
+  // "Gerät besetzt" → Übung ans Ende schieben und zur nächsten offenen springen.
+  // Die übersprungene wird so garantiert zuletzt automatisch nachgeholt.
   async function handleSkip() {
-    if (!exercise || !trainingDay) return
+    if (!exercise || !trainingDay || !workout) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     await saveToServer(sets)
-    const ordered = orderExercises(trainingDay)
-    let completedIds = new Set<string>()
-    if (workout) {
-      const completed = await getWorkoutExercises(workout.id)
-      completedIds = new Set(completed.map(e => e.exercise_id))
-    }
+    addDeferred(workout.id, exercise.id)
+    const ordered = orderByDeferred(orderExercises(trainingDay), getDeferred(workout.id))
+    const completed = await getWorkoutExercises(workout.id)
+    const completedIds = new Set(completed.map(e => e.exercise_id))
     const next = findNextUnfinished(ordered, exercise.id, completedIds)
     if (next) {
       navigate(`/training/${next.id}${dateQuery}`, { replace: true })
