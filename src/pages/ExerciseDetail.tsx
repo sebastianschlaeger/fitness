@@ -50,6 +50,34 @@ function autoSetSeconds(index: number): number {
   return AUTO_BASE_SECONDS + index * AUTO_STEP_SECONDS
 }
 
+/** Ganze Tage zwischen zwei ISO-Daten (YYYY-MM-DD), UTC-basiert wie today(). */
+function daysBetween(fromISO: string, toISO: string): number {
+  const a = new Date(`${fromISO}T00:00:00Z`).getTime()
+  const b = new Date(`${toISO}T00:00:00Z`).getTime()
+  return Math.round((b - a) / 86_400_000)
+}
+
+type TopSetIncrease = { days: number; from: number; to: number; date: string }
+
+/**
+ * Letzte Steigerung des Top-Satzes: jüngster Trainingstag, an dem das max.
+ * Gewicht höher war als am Trainingstag davor. `days` = Abstand zu `refDate`.
+ * null, wenn es (noch) keine Steigerung gibt.
+ */
+function lastTopSetIncrease(series: ExerciseHistoryPoint[], refDate: string): TopSetIncrease | null {
+  for (let i = series.length - 1; i >= 1; i--) {
+    if (series[i].max_weight > series[i - 1].max_weight) {
+      return {
+        days: daysBetween(series[i].date, refDate),
+        from: series[i - 1].max_weight,
+        to: series[i].max_weight,
+        date: series[i].date,
+      }
+    }
+  }
+  return null
+}
+
 /** Label für die Arbeitssätze (ohne den vorgelagerten Aufwärmsatz). */
 function workLabel(idx: number, count: number): string {
   if (idx === count - 1) return 'Top-Satz'
@@ -409,6 +437,15 @@ export default function ExerciseDetail() {
 
   const allDone = sets.length > 0 && sets.every(s => s.completed)
   const step = computeStep(sets, warmupCount)
+
+  // „Top-Satz zuletzt erhöht": aus der DB-Historie (max. Gewicht je Tag), aber den
+  // aktuell eingetragenen Top-Satz für `date` eingemischt, damit ein Bump im
+  // laufenden Training sofort zählt (Historie wird nur beim Laden geholt).
+  const liveMax = sets.reduce((m, s) => Math.max(m, s.weight_kg), 0)
+  const mergedHistory = liveMax > 0
+    ? [...history.filter(h => h.date !== date), { date, max_weight: liveMax }].sort((a, b) => (a.date < b.date ? -1 : 1))
+    : history
+  const lastIncrease = lastTopSetIncrease(mergedHistory, today())
   // Nächster auszuführender Satz: in der Automatik der laufende, sonst der erste
   // noch offene. Treibt das große Gewicht-Readout (sichtbar = wie viel auflegen).
   const nextIndex = auto ? autoIndex : sets.findIndex(s => !s.completed)
@@ -589,6 +626,22 @@ export default function ExerciseDetail() {
                   Gerät besetzt
                 </button>
               </div>
+            </div>
+          )}
+
+          {mergedHistory.length >= 2 && (
+            <div className="mt-4 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm">
+              {lastIncrease ? (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-text-dim">⬆ Top-Satz zuletzt erhöht</span>
+                  <span className="font-semibold text-accent-light whitespace-nowrap">
+                    {lastIncrease.days === 0 ? 'heute' : lastIncrease.days === 1 ? 'vor 1 Tag' : `vor ${lastIncrease.days} Tagen`}
+                    <span className="text-text-dim font-normal"> · {lastIncrease.from} → {lastIncrease.to} kg</span>
+                  </span>
+                </div>
+              ) : (
+                <span className="text-text-dim">⬆ Top-Satz bislang nicht gesteigert</span>
+              )}
             </div>
           )}
 
