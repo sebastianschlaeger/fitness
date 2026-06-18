@@ -171,15 +171,24 @@ export default function ExerciseDetail() {
   useWakeLock(auto)
 
   // Startet den (mit jedem Satz um 15 s längeren) Timer für den laufenden Satz.
-  // Der letzte Satz endet ohne „Start"-Ansage (cue 'none'); danach schließt
-  // advanceAuto die Übung ab.
+  // Der LETZTE Satz bekommt keinen Ruhe-Countdown mehr: er wurde bereits von der
+  // „Start"-Ansage des vorletzten Satzes angekündigt → die Übung wird direkt
+  // abgeschlossen, und die anschließende „Pause vor: nächste Übung" deckt das
+  // Ausführen des letzten Satzes mit ab. (Früher lief hier noch ein stiller
+  // ~90–120 s-Countdown ohne Zweck.)
   useEffect(() => {
     if (!auto || !exercise) return
     const total = setsRef.current.length
     if (total === 0 || autoIndex >= total) return
-    const isFinal = autoIndex === total - 1
-    const label = `${exercise.name} · Satz ${autoIndex + 1}/${total}${isFinal ? ' (letzter)' : ''}`
-    timer.start(autoSetSeconds(autoIndex), label, { cue: isFinal ? 'none' : 'start' })
+    if (autoIndex === total - 1) {
+      setAuto(false)
+      const updated = setsRef.current.map(s => ({ ...s, completed: true }))
+      setSets(updated)
+      finishExercise(updated)
+      return
+    }
+    const label = `${exercise.name} · Satz ${autoIndex + 1}/${total}`
+    timer.start(autoSetSeconds(autoIndex), label, { cue: 'start' })
     // exercise/timer sind stabil genug; bewusst nur auf auto+autoIndex reagieren.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auto, autoIndex])
@@ -334,7 +343,8 @@ export default function ExerciseDetail() {
 
   // --- Automatik (hands-free) ---------------------------------------------
   // Ablauf: Satz 1 sofort machen → Timer (60 s, je Satz +15 s) → „Start" → Satz 2
-  // → … → letzter Satz → Timer ohne Ansage → Übung wird automatisch abgeschlossen.
+  // → … → „Start" für den letzten Satz → Übung wird sofort abgeschlossen (KEIN
+  // weiterer Countdown), danach läuft nur noch die „Pause vor: nächste Übung".
 
   function startAuto() {
     // finishingRef prüfen: sonst könnte ein noch laufender manueller Abschluss den
