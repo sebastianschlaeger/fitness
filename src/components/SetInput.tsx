@@ -32,7 +32,6 @@ export default function SetInput({ setNumber, label, isWarmup, isTopSet, isActiv
         className={`bg-surface2 border rounded-lg px-2 text-center font-semibold ${
           isActive ? 'w-20 py-2 text-xl' : 'w-16 py-1.5 text-sm'
         } ${isTopSet ? 'border-accent' : 'border-border'}`}
-        disabled={data.completed}
       />
       <span className="text-xs text-text-dim">kg</span>
 
@@ -44,7 +43,6 @@ export default function SetInput({ setNumber, label, isWarmup, isTopSet, isActiv
         className={`bg-surface2 border rounded-lg px-2 text-center font-semibold ${
           isActive ? 'w-16 py-2 text-xl' : 'w-14 py-1.5 text-sm'
         } ${isTopSet ? 'border-accent' : 'border-border'}`}
-        disabled={data.completed}
       />
       <span className="text-xs text-text-dim">Wdh</span>
 
