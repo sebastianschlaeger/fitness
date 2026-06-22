@@ -477,7 +477,7 @@ export default function ExerciseDetail() {
         <img
           src={customImage || exercise.equipmentImage}
           alt={exercise.equipment}
-          className="w-full h-48 object-contain rounded-xl bg-surface"
+          className={`w-full object-contain rounded-xl bg-surface transition-all ${auto ? 'h-20' : 'h-48'}`}
           onError={(e) => {
             const img = e.target as HTMLImageElement
             if (!img.src.endsWith('/images/equipment/placeholder.svg')) {
@@ -485,7 +485,7 @@ export default function ExerciseDetail() {
             }
           }}
         />
-        <div className="absolute bottom-2 right-2 flex gap-2">
+        <div className={`absolute bottom-2 right-2 flex gap-2 ${auto ? 'hidden' : ''}`}>
           {customImage && (
             <button
               onClick={() => removeCustomImage(exercise.id)}
