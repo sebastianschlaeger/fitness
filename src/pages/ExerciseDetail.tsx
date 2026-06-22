@@ -558,14 +558,6 @@ export default function ExerciseDetail() {
             </div>
           </div>
 
-          {getMachineAdjustments(exercise.equipmentImage).length > 0 && (
-            <MachineSettingsCard
-              machineId={machineIdFromImage(exercise.equipmentImage)}
-              adjustments={getMachineAdjustments(exercise.equipmentImage)}
-            />
-          )}
-
-
           {auto ? (
             <div className="space-y-2">
               <div className="rounded-xl bg-surface border border-border p-3 text-center text-xs text-text-dim">
@@ -608,6 +600,15 @@ export default function ExerciseDetail() {
                   Gerät besetzt
                 </button>
               </div>
+            </div>
+          )}
+
+          {getMachineAdjustments(exercise.equipmentImage).length > 0 && (
+            <div className="mt-4">
+              <MachineSettingsCard
+                machineId={machineIdFromImage(exercise.equipmentImage)}
+                adjustments={getMachineAdjustments(exercise.equipmentImage)}
+              />
             </div>
           )}
 
