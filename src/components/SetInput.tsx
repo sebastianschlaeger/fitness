@@ -1,15 +1,18 @@
 type SetData = { weight_kg: number; reps: number; completed: boolean }
 
-export default function SetInput({ setNumber, label, isWarmup, isTopSet, isActive, data, onChange }: {
+export default function SetInput({ setNumber, label, isWarmup, isTopSet, isActive, large, data, onChange }: {
   setNumber: number
   label: string
   isWarmup: boolean
   isTopSet: boolean
   /** Aktuell laufender Satz in der Automatik — hervorgehoben. */
   isActive: boolean
+  /** Automatik läuft — dann alle Gewichte groß darstellen. */
+  large: boolean
   data: SetData
-  onChange: (field: 'weight_kg' | 'reps', value: number) => void
+  onChange: (field: 'weight_kg', value: number) => void
 }) {
+  const bigWeight = isActive || large
   return (
     <div className={`flex items-center gap-3 py-3 px-3 rounded-lg ${
       isActive ? 'ring-2 ring-accent bg-accent/10' : isTopSet ? 'bg-accent/10' : isWarmup ? 'bg-surface2/40' : ''
@@ -30,21 +33,10 @@ export default function SetInput({ setNumber, label, isWarmup, isTopSet, isActiv
         value={data.weight_kg || ''}
         onChange={e => onChange('weight_kg', parseFloat(e.target.value) || 0)}
         className={`bg-surface2 border rounded-lg px-2 text-center font-semibold ${
-          isActive ? 'w-20 py-2 text-xl' : 'w-16 py-1.5 text-sm'
+          bigWeight ? 'w-24 py-2 text-2xl' : 'w-16 py-1.5 text-sm'
         } ${isTopSet ? 'border-accent' : 'border-border'}`}
       />
       <span className="text-xs text-text-dim">kg</span>
-
-      <input
-        type="number"
-        inputMode="numeric"
-        value={data.reps || ''}
-        onChange={e => onChange('reps', parseInt(e.target.value) || 0)}
-        className={`bg-surface2 border rounded-lg px-2 text-center font-semibold ${
-          isActive ? 'w-16 py-2 text-xl' : 'w-14 py-1.5 text-sm'
-        } ${isTopSet ? 'border-accent' : 'border-border'}`}
-      />
-      <span className="text-xs text-text-dim">Wdh</span>
 
       {/* Passiver Status — kein manuelles Abhaken mehr, die Automatik steuert. */}
       <div className="w-7 h-7 ml-auto flex items-center justify-center flex-shrink-0">

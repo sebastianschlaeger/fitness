@@ -550,6 +550,7 @@ export default function ExerciseDetail() {
                     isWarmup={isWarmup}
                     isTopSet={isTopSet}
                     isActive={auto && i === autoIndex}
+                    large={auto}
                     data={set}
                     onChange={(field, value) => updateSet(i, field, value)}
                   />
