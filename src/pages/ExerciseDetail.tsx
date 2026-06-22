@@ -507,24 +507,7 @@ export default function ExerciseDetail() {
       </div>
 
       <h1 className="text-xl font-bold">{exercise.name}</h1>
-      <p className="text-sm text-text-dim mb-2">{exercise.equipment}</p>
-
-      {exercise.hints && (
-        <p className="text-xs text-text-dim mb-2">{exercise.hints}</p>
-      )}
-
-      {exercise.shoulderWarning && (
-        <div className="bg-danger/10 border border-danger/20 rounded-lg px-3 py-2 mb-3">
-          <p className="text-xs text-danger font-semibold">⚠️ {exercise.shoulderWarning}</p>
-        </div>
-      )}
-
-      {getMachineAdjustments(exercise.equipmentImage).length > 0 && (
-        <MachineSettingsCard
-          machineId={machineIdFromImage(exercise.equipmentImage)}
-          adjustments={getMachineAdjustments(exercise.equipmentImage)}
-        />
-      )}
+      <p className="text-sm text-text-dim mb-3">{exercise.equipment}</p>
 
       {exercise.isCardio ? (
         <CardioBlock
@@ -577,6 +560,13 @@ export default function ExerciseDetail() {
               })}
             </div>
           </div>
+
+          {getMachineAdjustments(exercise.equipmentImage).length > 0 && (
+            <MachineSettingsCard
+              machineId={machineIdFromImage(exercise.equipmentImage)}
+              adjustments={getMachineAdjustments(exercise.equipmentImage)}
+            />
+          )}
 
           {nextIndex >= 0 && sets[nextIndex] && (
             <div className="rounded-xl bg-accent/10 border border-accent/30 p-4 text-center mb-4">
