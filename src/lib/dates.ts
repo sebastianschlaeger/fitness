@@ -1,4 +1,4 @@
-import { phases, PLAN_START_DATE, MAMMUTMARSCH_DATE, type Phase, type TrainingDay } from '../data/training-plan'
+import { phases, PLAN_START_DATE, MAMMUTMARSCH_DATE, CARDIO_DAYS_OF_WEEK, CARDIO_DI_DO, type Phase, type TrainingDay } from '../data/training-plan'
 
 /** Get ISO date string for today (YYYY-MM-DD) */
 export function today(): string {
@@ -47,7 +47,10 @@ export function getTodaysTraining(date: string = today()): TrainingDay | null {
 
   // Check if today is a training day at all
   const matchingDay = phase.days.find(d => d.daysOfWeek.includes(dow))
-  if (!matchingDay) return null
+  if (!matchingDay) {
+    // Cardio läuft phasenunabhängig an sonst trainingsfreien Di/Do.
+    return CARDIO_DAYS_OF_WEEK.includes(dow) ? CARDIO_DI_DO : null
+  }
 
   // A/B alternation for phases with exactly 2 day templates
   if (phase.alternating && phase.days.length === 2) {

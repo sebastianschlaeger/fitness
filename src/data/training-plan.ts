@@ -280,6 +280,31 @@ const PHASE3_MUSKELERHALT: TrainingDay = {
 }
 
 // ============================================================
+// CARDIO: phasenunabhängig Di + Do
+// Eigenständige Ausdauer-Einheit mit Stoppuhr (CardioBlock).
+// Greift als Fallback an Kraft-Ruhetagen (siehe getTodaysTraining).
+// ============================================================
+
+export const CARDIO_DAYS_OF_WEEK = [2, 4] // Di, Do
+
+export const CARDIO_DI_DO: TrainingDay = {
+  daysOfWeek: CARDIO_DAYS_OF_WEEK,
+  name: 'Cardio',
+  exercises: [
+    {
+      id: 'cardio-ausdauer',
+      name: 'Cardio (Ausdauer)',
+      equipment: 'Frei wählbar (Laufband / Crosstrainer / Stairmaster)',
+      equipmentImage: '/images/equipment/placeholder.svg',
+      sets: 1,
+      isCardio: true,
+      durationMinutes: 30,
+      hints: 'Gerät frei wählbar. 30 Min lockere bis moderate Ausdauer als Mammutmarsch-Grundlage. Die Stoppuhr läuft auch über das Ziel hinaus weiter.',
+    },
+  ],
+}
+
+// ============================================================
 // PHASES
 // ============================================================
 
