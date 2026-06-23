@@ -82,7 +82,7 @@ function getCtx(): AudioContext | null {
 }
 
 /** Beim ersten Tap aufrufen (User-Gesture) — entsperrt Audio + Sprachausgabe. */
-function unlockAudio() {
+export function unlockAudio() {
   const ctx = getCtx()
   if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {})
   // iOS/Safari geben Sprachausgabe nur frei, wenn sie einmal innerhalb einer
@@ -103,7 +103,7 @@ function vibrate() {
 }
 
 /** Spricht ein Wort (z.B. "Start"). Fallback auf Beep, wenn keine Sprachausgabe. */
-function speak(text: string) {
+export function speak(text: string) {
   try {
     const synth = window.speechSynthesis
     if (!synth) { playBeep(); return }
@@ -118,7 +118,7 @@ function speak(text: string) {
   }
 }
 
-function playBeep() {
+export function playBeep() {
   vibrate()
   const ctx = getCtx()
   if (!ctx) return

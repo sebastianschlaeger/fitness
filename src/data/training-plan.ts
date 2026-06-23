@@ -1,3 +1,12 @@
+/** Intervall-Konfiguration für HIIT-Einheiten (z.B. am Crosstrainer). */
+export type HiitConfig = {
+  warmupSeconds: number
+  workSeconds: number
+  restSeconds: number
+  rounds: number
+  cooldownSeconds: number
+}
+
 export type Exercise = {
   id: string
   name: string
@@ -9,6 +18,7 @@ export type Exercise = {
   shoulderWarning?: string
   isCardio?: boolean
   durationMinutes?: number
+  hiit?: HiitConfig // wenn gesetzt → Intervall-Training statt Dauer-Cardio
 }
 
 export type TrainingDay = {
@@ -280,26 +290,34 @@ const PHASE3_MUSKELERHALT: TrainingDay = {
 }
 
 // ============================================================
-// CARDIO: phasenunabhängig Di + Do
-// Eigenständige Ausdauer-Einheit mit Stoppuhr (CardioBlock).
+// CARDIO: phasenunabhängig Di + Do → HIIT am Crosstrainer
+// Intervall-Training (HiitBlock) mit Ansagen & Beep pro Wechsel.
 // Greift als Fallback an Kraft-Ruhetagen (siehe getTodaysTraining).
 // ============================================================
 
 export const CARDIO_DAYS_OF_WEEK = [2, 4] // Di, Do
 
-export const CARDIO_DI_DO: TrainingDay = {
+// 3:00 Aufwärmen + 16×(0:30 hart / 1:00 locker) + 3:00 Auslaufen = 30:00
+export const HIIT_CROSSTRAINER: TrainingDay = {
   daysOfWeek: CARDIO_DAYS_OF_WEEK,
-  name: 'Cardio',
+  name: 'HIIT (Crosstrainer)',
   exercises: [
     {
-      id: 'cardio-ausdauer',
-      name: 'Cardio (Ausdauer)',
-      equipment: 'Frei wählbar (Laufband / Crosstrainer / Stairmaster)',
-      equipmentImage: '/images/equipment/placeholder.svg',
+      id: 'hiit-crosstrainer',
+      name: 'HIIT (Crosstrainer)',
+      equipment: 'Ellipsentrainer / Crosstrainer',
+      equipmentImage: '/images/equipment/ellipsentrainer.jpg',
       sets: 1,
       isCardio: true,
       durationMinutes: 30,
-      hints: 'Gerät frei wählbar. 30 Min lockere bis moderate Ausdauer als Mammutmarsch-Grundlage. Die Stoppuhr läuft auch über das Ziel hinaus weiter.',
+      hiit: {
+        warmupSeconds: 180,
+        workSeconds: 30,
+        restSeconds: 60,
+        rounds: 16,
+        cooldownSeconds: 180,
+      },
+      hints: 'Gelenk- & schulterschonend. In der Belastung zügiger Widerstand/Tempo (8–9 von 10), in der Erholung locker weiterkurbeln — nicht ganz stoppen. Ansagen & Beep führen durch die Runden.',
     },
   ],
 }

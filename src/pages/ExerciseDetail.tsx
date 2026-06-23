@@ -10,6 +10,7 @@ import { useCustomImage, captureCustomImage, removeCustomImage } from '../lib/cu
 import { getMachineAdjustments, machineIdFromImage } from '../data/machineAdjustments'
 import SetInput from '../components/SetInput'
 import CardioBlock from '../components/CardioBlock'
+import HiitBlock from '../components/HiitBlock'
 import MachineSettingsCard from '../components/MachineSettingsCard'
 import ExerciseHistoryChart from '../components/ExerciseHistoryChart'
 import Fireworks from '../components/Fireworks'
@@ -506,7 +507,19 @@ export default function ExerciseDetail() {
       <h1 className="text-xl font-bold">{exercise.name}</h1>
       <p className="text-sm text-text-dim mb-3">{exercise.equipment}</p>
 
-      {exercise.isCardio ? (
+      {exercise.hiit ? (
+        <HiitBlock
+          exercise={exercise}
+          allDone={allDone}
+          onComplete={() => {
+            const updated = sets.map(s => ({ ...s, completed: true }))
+            setSets(updated)
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+            saveToServer(updated)
+            finishExercise(updated)
+          }}
+        />
+      ) : exercise.isCardio ? (
         <CardioBlock
           exercise={exercise}
           allDone={allDone}
