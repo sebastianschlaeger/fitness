@@ -46,9 +46,19 @@ function computeStep(sets: SetData[], warmupCount: number): number {
  */
 const AUTO_BASE_SECONDS = 60
 const AUTO_STEP_SECONDS = 15
+/** Vor dem letzten Satz gibt es 30 s Extra-Pause (schwerster Satz, volle Erholung). */
+const EXTRA_BEFORE_LAST_SET_SECONDS = 30
 /** Wartezeit für den Satz an Position `index` (0-basiert): 60 s, 75 s, 90 s, … */
 function autoSetSeconds(index: number): number {
   return AUTO_BASE_SECONDS + index * AUTO_STEP_SECONDS
+}
+/**
+ * Tatsächliche Pausenlänge, die vor dem Satz an `index` läuft (bei `total` Sätzen).
+ * Die Pause direkt vor dem letzten Satz bekommt +30 s.
+ */
+function restBeforeSetSeconds(index: number, total: number): number {
+  const extra = index === total - 2 ? EXTRA_BEFORE_LAST_SET_SECONDS : 0
+  return autoSetSeconds(index) + extra
 }
 
 /** Ganze Tage zwischen zwei ISO-Daten (YYYY-MM-DD), UTC-basiert wie today(). */
@@ -172,6 +182,7 @@ export default function ExerciseDetail() {
   useWakeLock(auto)
 
   // Startet den (mit jedem Satz um 15 s längeren) Timer für den laufenden Satz.
+  // Die Pause direkt vor dem letzten Satz bekommt +30 s Extra (restBeforeSetSeconds).
   // Der LETZTE Satz bekommt keinen Ruhe-Countdown mehr: er wurde bereits von der
   // „Start"-Ansage des vorletzten Satzes angekündigt → die Übung wird direkt
   // abgeschlossen, und die anschließende „Pause vor: nächste Übung" deckt das
@@ -189,7 +200,7 @@ export default function ExerciseDetail() {
       return
     }
     const label = `${exercise.name} · Satz ${autoIndex + 1}/${total}`
-    timer.start(autoSetSeconds(autoIndex), label, { cue: 'start' })
+    timer.start(restBeforeSetSeconds(autoIndex, total), label, { cue: 'start' })
     // exercise/timer sind stabil genug; bewusst nur auf auto+autoIndex reagieren.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auto, autoIndex])
@@ -594,7 +605,7 @@ export default function ExerciseDetail() {
                     finishing ? 'bg-accent/40 cursor-wait' : 'bg-accent active:bg-accent/80'
                   }`}
                 >
-                  ▶ Automatik starten · {sets.findIndex(s => !s.completed) > 0 ? 'fortsetzen' : `${sets.length} Sätze · Pause ${AUTO_BASE_SECONDS}–${autoSetSeconds(sets.length - 1)}s`}
+                  ▶ Automatik starten · {sets.findIndex(s => !s.completed) > 0 ? 'fortsetzen' : `${sets.length} Sätze · Pause ${AUTO_BASE_SECONDS}–${restBeforeSetSeconds(sets.length - 2, sets.length)}s`}
                 </button>
               )}
               <div className="flex gap-2">
