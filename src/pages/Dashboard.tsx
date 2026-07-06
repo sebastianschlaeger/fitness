@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getDashboard, type DashboardData } from '../lib/api'
 import StreakWidget from '../components/StreakWidget'
-import CountdownWidget from '../components/CountdownWidget'
 import PhaseProgress from '../components/PhaseProgress'
 import WeekView from '../components/WeekView'
 
@@ -22,7 +21,6 @@ export default function Dashboard() {
     <div className="p-4 space-y-3">
       <div className="flex gap-3">
         <StreakWidget weeks={data.streak} />
-        <CountdownWidget days={data.mammutmarschDays} />
         <div className="bg-surface2 rounded-xl p-4 text-center flex-1">
           <div className="text-xs text-text-dim uppercase tracking-wider">Gewicht</div>
           <div className="text-3xl font-extrabold text-accent-light">

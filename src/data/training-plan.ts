@@ -250,44 +250,9 @@ const PHASE2_TAG_B: TrainingDay = {
 }
 
 // ============================================================
-// PHASE 3: Ausdauer-Fokus & Muskelerhalt (Woche 17-24)
-// Nur Oberkörper 1x/Woche, 3 Sätze, gleiche Intensität wie Phase 2
-// Beine pausiert (werden durch Märsche beansprucht)
+// PHASE 3: Progression fortgeführt (ab Woche 17)
+// Volles Ganzkörper-A/B-Programm wie Phase 2 läuft normal weiter.
 // ============================================================
-
-const PHASE3_MUSKELERHALT: TrainingDay = {
-  daysOfWeek: [1, 3, 5], // Mo, Mi, Fr — Kraft fix an diesen Tagen (Di/Do = Cardio)
-  name: 'Muskelerhalt (Oberkörper)',
-  exercises: [
-    {
-      id: 'brustpresse-technogym',
-      name: 'Brustpresse',
-      equipment: 'Technogym Chest Press',
-      equipmentImage: '/images/equipment/technogym-chest-press.jpg',
-      sets: 3,
-      reps: '8-15',
-      shoulderWarning: 'ROM begrenzen',
-    },
-    {
-      id: 'latzug-technogym',
-      name: 'Latzug (Untergriff)',
-      equipment: 'Technogym Vertical Traction',
-      equipmentImage: '/images/equipment/technogym-vertical-traction.jpg',
-      sets: 3,
-      reps: '8-15',
-      hints: 'Untergriff für Bizeps-Beteiligung.',
-    },
-    {
-      id: 'rudern-technogym',
-      name: 'Rudern',
-      equipment: 'Technogym Low Row',
-      equipmentImage: '/images/equipment/technogym-low-row.jpg',
-      sets: 3,
-      reps: '8-15',
-      hints: 'Aufrechte Haltung für Marsch-Stabilität.',
-    },
-  ],
-}
 
 // ============================================================
 // CARDIO: phasenunabhängig Di + Do → HIIT am Crosstrainer
@@ -350,12 +315,13 @@ export const phases: Phase[] = [
   },
   {
     phase: 3,
-    name: 'Ausdauer-Fokus & Muskelerhalt',
+    name: 'Progression & Recomp-Peak',
     weeks: [17, 24],
     gymDaysPerWeek: 3,
+    alternating: true, // A-B-A / B-A-B
     rir: '1-2',
     restSeconds: 150,
-    info: 'Kraft fix Mo/Mi/Fr (Oberkörper-Muskelerhalt), Cardio Di/Do. Beine pausiert — Märsche reichen.',
-    days: [PHASE3_MUSKELERHALT],
+    info: 'Volles Ganzkörper-Programm Mo/Mi/Fr (A/B im Wechsel), Cardio Di/Do.',
+    days: [PHASE2_TAG_A, PHASE2_TAG_B],
   },
 ]
