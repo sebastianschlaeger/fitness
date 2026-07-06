@@ -256,7 +256,7 @@ const PHASE2_TAG_B: TrainingDay = {
 // ============================================================
 
 const PHASE3_MUSKELERHALT: TrainingDay = {
-  daysOfWeek: [3], // Mi — genug Abstand zu Wochenend-Märschen
+  daysOfWeek: [1, 3, 5], // Mo, Mi, Fr — Kraft fix an diesen Tagen (Di/Do = Cardio)
   name: 'Muskelerhalt (Oberkörper)',
   exercises: [
     {
@@ -352,10 +352,10 @@ export const phases: Phase[] = [
     phase: 3,
     name: 'Ausdauer-Fokus & Muskelerhalt',
     weeks: [17, 24],
-    gymDaysPerWeek: 1,
+    gymDaysPerWeek: 3,
     rir: '1-2',
     restSeconds: 150,
-    info: 'Nur Oberkörper erhalten. Beine pausiert — Märsche reichen. Kraft-Volumen auf 1/3 reduziert.',
+    info: 'Kraft fix Mo/Mi/Fr (Oberkörper-Muskelerhalt), Cardio Di/Do. Beine pausiert — Märsche reichen.',
     days: [PHASE3_MUSKELERHALT],
   },
 ]
