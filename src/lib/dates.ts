@@ -1,4 +1,4 @@
-import { phases, PLAN_START_DATE, MAMMUTMARSCH_DATE, CARDIO_DAYS_OF_WEEK, HIIT_CROSSTRAINER, type Phase, type TrainingDay } from '../data/training-plan'
+import { phases, PLAN_START_DATE, CARDIO_DAYS_OF_WEEK, HIIT_CROSSTRAINER, type Phase, type TrainingDay } from '../data/training-plan'
 
 /** Get ISO date string for today (YYYY-MM-DD) */
 export function today(): string {
@@ -71,14 +71,6 @@ export function getTodaysTraining(date: string = today()): TrainingDay | null {
   }
 
   return matchingDay
-}
-
-/** Days until Mammutmarsch */
-export function daysUntilMammutmarsch(date: string = today()): number {
-  const target = new Date(MAMMUTMARSCH_DATE)
-  const current = new Date(date)
-  const diffMs = target.getTime() - current.getTime()
-  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
 }
 
 /** Get Monday of the week containing the given date */

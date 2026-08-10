@@ -40,7 +40,6 @@ export type Phase = {
 }
 
 export const PLAN_START_DATE = '2026-03-16'
-export const MAMMUTMARSCH_DATE = '2026-09-05'
 export const START_WEIGHT_KG = 94
 export const GOAL_WEIGHT_KG = 80
 
@@ -60,7 +59,7 @@ const PHASE1_GANZKOERPER: TrainingDay = {
       equipmentImage: '/images/equipment/technogym-leg-press.jpg',
       sets: 3,
       reps: '8-15',
-      hints: 'Füße schulterbreit, Knie nicht über Zehenspitzen. Schwere Grundübung für Mammutmarsch-Kraft.',
+      hints: 'Füße schulterbreit, Knie nicht über Zehenspitzen. Schwere Grundübung für die Beine.',
     },
     {
       id: 'brustpresse-technogym',
@@ -97,7 +96,7 @@ const PHASE1_GANZKOERPER: TrainingDay = {
       equipmentImage: '/images/equipment/technogym-low-row.jpg',
       sets: 3,
       reps: '8-15',
-      hints: 'Schulterblätter zusammenziehen. Aufrechte Haltung — wichtig für lange Märsche.',
+      hints: 'Schulterblätter zusammenziehen. Aufrechte Haltung — gut gegen Schreibtisch-Haltung.',
     },
     {
       id: 'hintere-schulter-l410',
@@ -115,7 +114,7 @@ const PHASE1_GANZKOERPER: TrainingDay = {
       equipmentImage: '/images/equipment/technogym-abdominal-crunch.jpg',
       sets: 3,
       reps: '8-15',
-      hints: 'Starker Core überträgt Kraft beim Gehen und schützt die Wirbelsäule.',
+      hints: 'Starker Core stabilisiert den Rumpf und schützt die Wirbelsäule.',
     },
   ],
 }
@@ -137,7 +136,7 @@ const PHASE2_TAG_A: TrainingDay = {
       equipmentImage: '/images/equipment/technogym-leg-press.jpg',
       sets: 3,
       reps: '8-15',
-      hints: 'Schwere Grundkraft für Mammutmarsch.',
+      hints: 'Schwere Grundkraft für die Beine.',
     },
     {
       id: 'brustpresse-technogym',
@@ -165,7 +164,7 @@ const PHASE2_TAG_A: TrainingDay = {
       equipmentImage: '/images/equipment/technogym-leg-curl.jpg',
       sets: 3,
       reps: '8-15',
-      hints: 'Oberschenkelrückseite — wichtig fürs Gehen.',
+      hints: 'Oberschenkelrückseite — Gegenspieler zum Beinstrecker.',
     },
     {
       id: 'rudern-technogym',

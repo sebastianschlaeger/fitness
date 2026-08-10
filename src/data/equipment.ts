@@ -183,7 +183,7 @@ export const equipmentCatalog: EquipmentInfo[] = [
       'Isolationsübung',
     ],
     alternatives: [],
-    notes: 'Besonders relevant für Mammutmarsch — stabilisiert das Knie beim langen Gehen!',
+    notes: 'Stabilisiert Knie und Beckenachse — Verletzungsprävention für Alltag und Training.',
   },
   {
     id: 'technogym-vertical-traction',
@@ -411,7 +411,7 @@ export const equipmentCatalog: EquipmentInfo[] = [
     pros: [
       'Beste Übung für Gluteus-Isolation',
       'Maschine macht Setup einfach (kein Langhantel-Setup nötig)',
-      'Wichtig für Lauf-/Gehleistung (Mammutmarsch!)',
+      'Wichtig für Lauf- und Gehleistung',
     ],
     cons: [
       'Kann bei falschem Setup den unteren Rücken belasten',
@@ -607,7 +607,7 @@ export const equipmentCatalog: EquipmentInfo[] = [
     pros: [
       'Höchster Kalorienverbrauch aller Cardio-Geräte',
       'Gleichzeitig Bein-Kraft + Ausdauer',
-      'Perfekte Mammutmarsch-Vorbereitung (Steigungen!)',
+      'Hoher Trainingseffekt durch simulierte Steigungen',
       'Gelenkschonender als Laufen',
     ],
     cons: [
@@ -616,7 +616,7 @@ export const equipmentCatalog: EquipmentInfo[] = [
       'Oft nur 1-2 Geräte im Studio',
     ],
     alternatives: ['laufband', 'ellipsentrainer'],
-    notes: 'Top-Gerät für Mammutmarsch-Prep! Simuliert Anstiege. 20-30 Min bei moderatem Tempo.',
+    notes: 'Simuliert Anstiege. 20-30 Min bei moderatem Tempo — sehr effizient fürs Kalorienziel.',
   },
   {
     id: 'laufband',
@@ -628,7 +628,7 @@ export const equipmentCatalog: EquipmentInfo[] = [
     secondaryMuscles: ['hamstrings', 'gluteus'],
     movementType: 'Gehen / Laufen',
     pros: [
-      'Direkte Mammutmarsch-Vorbereitung (Gehen trainieren!)',
+      'Gehen und Laufen gezielt und dosiert trainierbar',
       'Steigung einstellbar → Bergtraining möglich',
       'Tempo genau steuerbar',
       'Wetterunabhängig',
@@ -638,7 +638,7 @@ export const equipmentCatalog: EquipmentInfo[] = [
       'Keine seitliche Bewegung',
     ],
     alternatives: ['stairmaster', 'ellipsentrainer'],
-    notes: 'Für Mammutmarsch: Gehen bei 5-6 km/h mit 5-10% Steigung. Trainiert die Gehausdauer direkt.',
+    notes: 'Gehen bei 5-6 km/h mit 5-10% Steigung = gelenkschonendes Ausdauertraining mit gutem Kalorienverbrauch.',
   },
   {
     id: 'ellipsentrainer',
@@ -656,12 +656,11 @@ export const equipmentCatalog: EquipmentInfo[] = [
       'Moderate Intensität bei hohem Kalorienverbrauch',
     ],
     cons: [
-      'Weniger spezifisch als Laufband für Geh-Training',
       'Keine reine Bein-Ausdauer',
-      'Bewegungsmuster nicht 1:1 übertragbar auf Gehen',
+      'Widerstand oft weniger fordernd als Stairmaster',
     ],
     alternatives: ['laufband', 'stairmaster'],
-    notes: 'Gut für Aufwärmen (10 Min) oder moderate Cardio-Einheiten. Weniger spezifisch für Mammutmarsch als Laufband/Stairmaster.',
+    notes: 'Gut für Aufwärmen (10 Min), HIIT und moderate Cardio-Einheiten — die gelenk- und schulterschonendste Option.',
   },
 ]
 
@@ -713,6 +712,6 @@ export const overlapGroups = [
   {
     name: 'Cardio (Ausdauer)',
     devices: ['stairmaster', 'laufband', 'ellipsentrainer'],
-    explanation: 'Mammutmarsch-Priorität: Laufband (Gehen!) > Stairmaster (Steigungen) > Ellipse (gelenkschonend). Laufband + Steigung ist die spezifischste Vorbereitung.',
+    explanation: 'Fürs Abnehm-/Fitness-Ziel funktionieren alle drei: Ellipse (gelenkschonend, HIIT-tauglich), Stairmaster (höchster Kalorienverbrauch), Laufband (Gehen mit Steigung). Entscheidend ist, was du regelmäßig machst.',
   },
 ]

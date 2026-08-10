@@ -1,17 +1,17 @@
 import { type Env, jsonResponse } from './_db'
 
 const PLAN_START = '2026-03-16'
-const MAMMUTMARSCH = '2026-09-05'
 const START_WEIGHT = 94
 
+// Muss zu src/data/training-plan.ts passen (Phasen & Gym-Tage/Woche)
 function getPhaseInfo(today: Date) {
   const start = new Date(PLAN_START)
   const diffDays = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
   const week = Math.floor(diffDays / 7) + 1
 
-  if (week <= 4) return { phase: 1, name: 'Wiedereinstieg', weekCurrent: week, weekTotal: 4, minVisits: 3 }
-  if (week <= 12) return { phase: 2, name: 'Aufbau', weekCurrent: week - 4, weekTotal: 8, minVisits: 4 }
-  return { phase: 3, name: 'Leistung', weekCurrent: Math.min(week - 12, 12), weekTotal: 12, minVisits: 5 }
+  if (week <= 8) return { phase: 1, name: 'Fundament & Gewöhnung', weekCurrent: week, weekTotal: 8, minVisits: 2 }
+  if (week <= 16) return { phase: 2, name: 'Progression & Recomp-Peak', weekCurrent: week - 8, weekTotal: 8, minVisits: 3 }
+  return { phase: 3, name: 'Progression & Recomp-Peak', weekCurrent: Math.min(week - 16, 8), weekTotal: 8, minVisits: 3 }
 }
 
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
@@ -86,19 +86,16 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   // Today's training name (from phase/day-of-week mapping)
   const dow = today.getDay() || 7
   const phaseData = [
-    { days: [{ daysOfWeek: [1,3,5], name: 'Ganzkörper' }] },
-    { days: [{ daysOfWeek: [1,4], name: 'Unterkörper' }, { daysOfWeek: [2,5], name: 'Oberkörper' }] },
-    { days: [{ daysOfWeek: [1], name: 'Push' }, { daysOfWeek: [2], name: 'Pull' }, { daysOfWeek: [3], name: 'Legs' }, { daysOfWeek: [4], name: 'Upper' }, { daysOfWeek: [5], name: 'Lower' }] },
+    { days: [{ daysOfWeek: [1, 4], name: 'Ganzkörper' }] },
+    { days: [{ daysOfWeek: [1, 3, 5], name: 'Ganzkörper (A/B)' }] },
+    { days: [{ daysOfWeek: [1, 3, 5], name: 'Ganzkörper (A/B)' }] },
   ]
   const currentPhaseData = phaseData[phaseInfo.phase - 1]
   const todaysDay = currentPhaseData.days.find(d => d.daysOfWeek.includes(dow))
 
-  const daysUntil = Math.max(0, Math.ceil((new Date(MAMMUTMARSCH).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)))
-
   return jsonResponse({
     streak,
     phase: { phase: phaseInfo.phase, name: phaseInfo.name, weekCurrent: phaseInfo.weekCurrent, weekTotal: phaseInfo.weekTotal },
-    mammutmarschDays: daysUntil,
     latestWeight: latestWeight ? { weight_kg: (latestWeight as any).weight_kg, delta: (latestWeight as any).weight_kg - START_WEIGHT } : null,
     walkingThisWeek: { km: (walkWeek as any).km, minutes: (walkWeek as any).minutes },
     walkingTotal: { km: (walkTotal as any).km },

@@ -130,7 +130,6 @@ export function getWalkingStats() {
 export type DashboardData = {
   streak: number
   phase: { phase: number; name: string; weekCurrent: number; weekTotal: number }
-  mammutmarschDays: number
   latestWeight: { weight_kg: number; delta: number } | null
   walkingThisWeek: { km: number; minutes: number }
   walkingTotal: { km: number }
