@@ -44,11 +44,11 @@ function computeStep(sets: SetData[], warmupCount: number): number {
  * Automatik-Timing: Basis-Wartezeit für den ersten Satz, danach pro Satz +15 s —
  * späte (schwere) Sätze brauchen mehr Pause als die ersten.
  */
-const AUTO_BASE_SECONDS = 60
+const AUTO_BASE_SECONDS = 90
 const AUTO_STEP_SECONDS = 15
 /** Vor dem letzten Satz gibt es 30 s Extra-Pause (schwerster Satz, volle Erholung). */
 const EXTRA_BEFORE_LAST_SET_SECONDS = 30
-/** Wartezeit für den Satz an Position `index` (0-basiert): 60 s, 75 s, 90 s, … */
+/** Wartezeit für den Satz an Position `index` (0-basiert): 90 s, 105 s, 120 s, … */
 function autoSetSeconds(index: number): number {
   return AUTO_BASE_SECONDS + index * AUTO_STEP_SECONDS
 }
