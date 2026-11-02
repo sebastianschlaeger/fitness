@@ -43,25 +43,25 @@ const SHOULDER_ALLOWED = [
 
 export default function Plan() {
   const currentPhase = getCurrentPhase()
-  const [selectedPhase, setSelectedPhase] = useState(currentPhase.phase)
-  const phase = phases.find(p => p.phase === selectedPhase)!
+  const [selectedIndex, setSelectedIndex] = useState(phases.indexOf(currentPhase))
+  const phase = phases[selectedIndex]
 
   return (
     <div className="p-4 space-y-4">
       <h1 className="text-xl font-bold">Trainingsplan</h1>
 
       <div className="flex gap-2">
-        {phases.map(p => (
+        {phases.map((p, i) => (
           <button
-            key={p.phase}
-            onClick={() => setSelectedPhase(p.phase)}
+            key={i}
+            onClick={() => setSelectedIndex(i)}
             className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
-              p.phase === selectedPhase ? 'bg-accent text-white' :
-              p.phase === currentPhase.phase ? 'bg-accent/20 text-accent-light border border-accent/30' :
+              i === selectedIndex ? 'bg-accent text-white' :
+              p === currentPhase ? 'bg-accent/20 text-accent-light border border-accent/30' :
               'bg-surface2 text-text-dim'
             }`}
           >
-            Phase {p.phase}
+            {p.label ?? `Phase ${p.phase}`}
           </button>
         ))}
       </div>

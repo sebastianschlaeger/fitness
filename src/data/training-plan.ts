@@ -37,6 +37,8 @@ export type Phase = {
   rir?: string // Reps in Reserve target
   restSeconds?: number // Rest between sets
   info?: string // Phase description shown in app
+  label?: string // Tab-Beschriftung im Plan (Default: „Phase N“)
+  loadFactor?: number // Vorbelegung = letztes Gewicht × Faktor (z. B. 0.6 nach langer Pause)
 }
 
 export const PLAN_START_DATE = '2026-03-16'
@@ -254,6 +256,16 @@ const PHASE2_TAG_B: TrainingDay = {
 // ============================================================
 
 // ============================================================
+// WIEDEREINSTIEG (ab 02.11.2026, Woche 34–35) nach gut zwei Monaten Pause:
+// gleiche A/B-Tage, aber 2 Sätze à 10–12, Gewichte vorbelegt mit 60 % des
+// letzten Trainings, 3–4 Wiederholungen im Tank. Zählt in der DB als Phase 3.
+// ============================================================
+
+function wiedereinstieg(day: TrainingDay): TrainingDay {
+  return { ...day, exercises: day.exercises.map(e => ({ ...e, sets: 2, reps: '10-12' })) }
+}
+
+// ============================================================
 // CARDIO: phasenunabhängig Di + Do → HIIT am Crosstrainer
 // Intervall-Training (HiitBlock) mit Ansagen & Beep pro Wechsel.
 // Greift als Fallback an Kraft-Ruhetagen (siehe getTodaysTraining).
@@ -322,5 +334,18 @@ export const phases: Phase[] = [
     restSeconds: 150,
     info: 'Volles Ganzkörper-Programm Mo/Mi/Fr (A/B im Wechsel), Cardio Di/Do.',
     days: [PHASE2_TAG_A, PHASE2_TAG_B],
+  },
+  {
+    phase: 3,
+    label: 'Wiedereinstieg',
+    name: 'Wiedereinstieg nach Pause',
+    weeks: [34, 35],
+    gymDaysPerWeek: 3,
+    alternating: true, // Woche 34 = Phasenwoche 1 → Mo A, Mi B, Fr A
+    rir: '3-4',
+    restSeconds: 150,
+    loadFactor: 0.6,
+    info: '2 Sätze à 10–12, Gewichte auf 60 % vom letzten Mal vorbelegt. Nach jedem Satz sollten noch 3–4 Wiederholungen drin sein.',
+    days: [wiedereinstieg(PHASE2_TAG_A), wiedereinstieg(PHASE2_TAG_B)],
   },
 ]

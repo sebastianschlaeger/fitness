@@ -313,8 +313,9 @@ export default function ExerciseDetail() {
         const sorted = [...lastSets].sort((a, b) => a.set_number - b.set_number)
         prefilled = Array.from({ length: total }, (_, i) => {
           const last = pickAligned(sorted, total, i)
+          const factor = phase.loadFactor ?? 1
           return {
-            weight_kg: last?.weight_kg || 0,
+            weight_kg: factor === 1 ? last?.weight_kg || 0 : Math.round(((last?.weight_kg || 0) * factor) / 2.5) * 2.5,
             reps: last?.reps || 0,
             completed: false,
           }
