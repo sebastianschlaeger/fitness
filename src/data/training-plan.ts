@@ -299,6 +299,52 @@ export const HIIT_CROSSTRAINER: TrainingDay = {
 }
 
 // ============================================================
+// LOCKERE AUSDAUER (ab 03.11.2026) statt HIIT: Di Ergometer, Do Rudergerät.
+// Tempo nach Sprechtest: ganze Sätze müssen noch gehen. Dauer wird im
+// Tagesplan gesteigert (+5 Min/Woche bis 60 Min).
+// ============================================================
+
+const AUSDAUER_ERGOMETER: TrainingDay = {
+  daysOfWeek: [2],
+  name: 'Ausdauer locker (Ergometer)',
+  exercises: [
+    {
+      id: 'cardio-ergometer',
+      name: 'Ergometer locker',
+      equipment: 'Fahrrad-Ergometer',
+      equipmentImage: '/images/equipment/placeholder.svg',
+      sets: 1,
+      isCardio: true,
+      durationMinutes: 40,
+      hints: 'Locker: Du musst noch ganze Sätze sprechen können. Trittfrequenz 80–90, Widerstand so, dass es über 40 Min. gleichmäßig geht. Watt notieren. Dazu Podcast oder Musik.',
+    },
+  ],
+}
+
+const AUSDAUER_RUDERN: TrainingDay = {
+  daysOfWeek: [4],
+  name: 'Ausdauer locker (Rudergerät)',
+  exercises: [
+    {
+      id: 'cardio-rudern',
+      name: 'Rudergerät locker',
+      equipment: 'Rudermaschine',
+      equipmentImage: '/images/equipment/placeholder.svg',
+      sets: 1,
+      isCardio: true,
+      durationMinutes: 40,
+      hints: 'Locker: ganze Sätze sprechen können. Ablauf je Zug: Beine – Oberkörper – Arme, zurück umgekehrt. 20–22 Züge pro Minute. Schultern unten lassen; zieht es links in der Schulter, auf Ergometer wechseln.',
+    },
+  ],
+}
+
+/** Ausdauer an Kraft-Ruhetagen (Di/Do) */
+export const AUSDAUER_JE_TAG: Record<number, TrainingDay> = {
+  2: AUSDAUER_ERGOMETER,
+  4: AUSDAUER_RUDERN,
+}
+
+// ============================================================
 // PHASES
 // ============================================================
 
