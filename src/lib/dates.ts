@@ -1,4 +1,4 @@
-import { phases, PLAN_START_DATE, AUSDAUER_JE_TAG, type Phase, type TrainingDay } from '../data/training-plan'
+import { phases, PLAN_START_DATE, AUSDAUER_JE_TAG, cardioMinutes, type Phase, type TrainingDay } from '../data/training-plan'
 
 /** Get ISO date string for today (YYYY-MM-DD) */
 export function today(): string {
@@ -29,8 +29,8 @@ export function getCurrentPhase(date: string = today()): Phase {
       return phase
     }
   }
-  // After plan ends, stay on phase 3
-  return phases[2]
+  // Nach Planende: letzte Phase weiterführen
+  return phases[phases.length - 1]
 }
 
 /** Get day of week (1=Mon, 7=Sun) */
@@ -40,22 +40,33 @@ export function getDayOfWeek(date: string = today()): number {
   return day === 0 ? 7 : day
 }
 
+/** Cardio-Dauer an die Plan-Woche anpassen (durationRamp) */
+function withWeekDurations(day: TrainingDay | null, date: string): TrainingDay | null {
+  if (!day) return null
+  const week = getWeekNumber(date)
+  return { ...day, exercises: day.exercises.map(e => (e.durationRamp ? { ...e, durationMinutes: cardioMinutes(e, week) } : e)) }
+}
+
 /** Get today's training day (or null if rest day) */
 export function getTodaysTraining(date: string = today()): TrainingDay | null {
+  return withWeekDurations(getTrainingTemplate(date), date)
+}
+
+function getTrainingTemplate(date: string): TrainingDay | null {
   const phase = getCurrentPhase(date)
   const dow = getDayOfWeek(date)
 
   // Check if today is a training day at all
   const matchingDay = phase.days.find(d => d.daysOfWeek.includes(dow))
   if (!matchingDay) {
-    // Lockere Ausdauer läuft phasenunabhängig an sonst trainingsfreien Di/Do.
+    // Ausdauer an Tagen ohne Kraft (Wochenende) läuft phasenunabhängig.
     return AUSDAUER_JE_TAG[dow] ?? null
   }
 
   // A/B alternation for phases with exactly 2 day templates
   if (phase.alternating && phase.days.length === 2) {
     const week = getWeekNumber(date)
-    const phaseWeek = week - phase.weeks[0] + 1 // 1-based week within phase
+    const phaseWeek = week - (phase.alternationStartWeek ?? phase.weeks[0]) + 1 // 1-based week for A/B
 
     // Which session of the week is this? (1st, 2nd, 3rd based on daysOfWeek order)
     const trainingDays = phase.days[0].daysOfWeek // both templates share same daysOfWeek

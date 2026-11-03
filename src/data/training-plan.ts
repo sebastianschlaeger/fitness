@@ -19,6 +19,8 @@ export type Exercise = {
   isCardio?: boolean
   durationMinutes?: number
   hiit?: HiitConfig // wenn gesetzt → Intervall-Training statt Dauer-Cardio
+  /** Dauer steigt wöchentlich: ab startWeek startMinutes, je Woche +stepMinutes bis maxMinutes */
+  durationRamp?: { startWeek: number; startMinutes: number; stepMinutes: number; maxMinutes: number }
 }
 
 export type TrainingDay = {
@@ -39,6 +41,7 @@ export type Phase = {
   info?: string // Phase description shown in app
   label?: string // Tab-Beschriftung im Plan (Default: „Phase N“)
   loadFactor?: number // Vorbelegung = letztes Gewicht × Faktor (z. B. 0.6 nach langer Pause)
+  alternationStartWeek?: number // A/B-Wechsel zählt ab dieser Woche (Default: Phasenbeginn)
 }
 
 export const PLAN_START_DATE = '2026-03-16'
@@ -299,49 +302,78 @@ export const HIIT_CROSSTRAINER: TrainingDay = {
 }
 
 // ============================================================
-// LOCKERE AUSDAUER (ab 03.11.2026) statt HIIT: Di Ergometer, Do Rudergerät.
-// Tempo nach Sprechtest: ganze Sätze müssen noch gehen. Dauer wird im
-// Tagesplan gesteigert (+5 Min/Woche bis 60 Min).
+// PLAN AB 03.11.2026 (Bausteine 1–6, ~/dokumente/gesundheit/training/plan-bausteine.md)
+// Mo/Mi/Fr: erst Kraft (A/B im Wechsel), direkt danach Ausdauer — nach A
+// Ergometer, nach B Rudergerät. Di/Do kein Studio. Sa oder So eine längere
+// Ausdauereinheit allein. Dauer steigt wöchentlich (Praxiswert).
 // ============================================================
 
-const AUSDAUER_ERGOMETER: TrainingDay = {
-  daysOfWeek: [2],
-  name: 'Ausdauer locker (Ergometer)',
+const MODERAT = 'Moderat: Du kannst dich noch bequem unterhalten, es fühlt sich „etwas anstrengend“ an (nicht ganz locker).'
+
+const NACH_KRAFT_ERGOMETER: Exercise = {
+  id: 'cardio-ergometer',
+  name: 'Ergometer (nach Kraft)',
+  equipment: 'Fahrrad-Ergometer',
+  equipmentImage: '/images/equipment/placeholder.svg',
+  sets: 1,
+  isCardio: true,
+  durationMinutes: 20,
+  durationRamp: { startWeek: 34, startMinutes: 20, stepMinutes: 5, maxMinutes: 30 },
+  hints: `${MODERAT} Durchschnitts-Watt notieren — steigt das bei gleichem Gefühl, bist du fitter. Dazu Podcast.`,
+}
+
+const NACH_KRAFT_RUDERN: Exercise = {
+  id: 'cardio-rudern',
+  name: 'Rudergerät (nach Kraft)',
+  equipment: 'Rudermaschine',
+  equipmentImage: '/images/equipment/placeholder.svg',
+  sets: 1,
+  isCardio: true,
+  durationMinutes: 20,
+  durationRamp: { startWeek: 34, startMinutes: 20, stepMinutes: 5, maxMinutes: 30 },
+  hints: `${MODERAT} Je Zug: Beine – Oberkörper – Arme, zurück umgekehrt. Zeit pro 500 m notieren. Zwickt die linke Schulter, auf Ergometer wechseln.`,
+}
+
+const WOCHENENDE_AUSDAUER: TrainingDay = {
+  daysOfWeek: [6, 7],
+  name: 'Ausdauer lang (Sa oder So)',
   exercises: [
     {
-      id: 'cardio-ergometer',
-      name: 'Ergometer locker',
-      equipment: 'Fahrrad-Ergometer',
-      equipmentImage: '/images/equipment/placeholder.svg',
+      id: 'cardio-wochenende',
+      name: 'Rad, Wandern oder Ellipsentrainer',
+      equipment: 'Draußen oder zu Hause',
+      equipmentImage: '/images/equipment/ellipsentrainer.jpg',
       sets: 1,
       isCardio: true,
-      durationMinutes: 40,
-      hints: 'Locker: Du musst noch ganze Sätze sprechen können. Trittfrequenz 80–90, Widerstand so, dass es über 40 Min. gleichmäßig geht. Watt notieren. Dazu Podcast oder Musik.',
+      durationMinutes: 45,
+      durationRamp: { startWeek: 34, startMinutes: 45, stepMinutes: 10, maxMinutes: 75 },
+      hints: `Einmal am Wochenende, Samstag oder Sonntag — der andere Tag ist frei. ${MODERAT}`,
     },
   ],
 }
 
-const AUSDAUER_RUDERN: TrainingDay = {
-  daysOfWeek: [4],
-  name: 'Ausdauer locker (Rudergerät)',
-  exercises: [
-    {
-      id: 'cardio-rudern',
-      name: 'Rudergerät locker',
-      equipment: 'Rudermaschine',
-      equipmentImage: '/images/equipment/placeholder.svg',
-      sets: 1,
-      isCardio: true,
-      durationMinutes: 40,
-      hints: 'Locker: ganze Sätze sprechen können. Ablauf je Zug: Beine – Oberkörper – Arme, zurück umgekehrt. 20–22 Züge pro Minute. Schultern unten lassen; zieht es links in der Schulter, auf Ergometer wechseln.',
-    },
-  ],
+/** Kraft-Tag mit Ausdauer direkt danach (A → Ergometer, B → Rudergerät) */
+function mitAusdauer(day: TrainingDay, cardio: Exercise): TrainingDay {
+  return { ...day, exercises: [...day.exercises, cardio] }
 }
 
-/** Ausdauer an Kraft-Ruhetagen (Di/Do) */
+/** Aufbau: 3 Arbeitssätze à 8–15 (plus 1 Aufwärmsatz, den die App selbst zeigt) */
+function aufbau(day: TrainingDay): TrainingDay {
+  return { ...day, exercises: day.exercises.map(e => ({ ...e, sets: 3, reps: '8-15' })) }
+}
+
+/** Ausdauer an Tagen ohne Kraft: nur noch das Wochenende (Di/Do kein Studio) */
 export const AUSDAUER_JE_TAG: Record<number, TrainingDay> = {
-  2: AUSDAUER_ERGOMETER,
-  4: AUSDAUER_RUDERN,
+  6: WOCHENENDE_AUSDAUER,
+  7: WOCHENENDE_AUSDAUER,
+}
+
+/** Tatsächliche Dauer einer Cardio-Übung in der gegebenen Plan-Woche */
+export function cardioMinutes(e: Exercise, week: number): number | undefined {
+  const r = e.durationRamp
+  if (!r) return e.durationMinutes
+  const steps = Math.max(0, week - r.startWeek)
+  return Math.min(r.maxMinutes, r.startMinutes + steps * r.stepMinutes)
 }
 
 // ============================================================
@@ -391,7 +423,27 @@ export const phases: Phase[] = [
     rir: '3-4',
     restSeconds: 150,
     loadFactor: 0.6,
-    info: '2 Sätze à 10–12, Gewichte auf 60 % vom letzten Mal vorbelegt. Nach jedem Satz sollten noch 3–4 Wiederholungen drin sein.',
-    days: [wiedereinstieg(PHASE2_TAG_A), wiedereinstieg(PHASE2_TAG_B)],
+    alternationStartWeek: 34,
+    info: '2 Sätze à 10–12, Gewichte auf 60 % vom letzten Mal vorbelegt. Nach jedem Satz sollten noch 3–4 Wiederholungen drin sein. Danach Ausdauer (20 Min., nächste Woche 25). Di/Do kein Studio, Sa oder So lange Ausdauer.',
+    days: [
+      mitAusdauer(wiedereinstieg(PHASE2_TAG_A), NACH_KRAFT_ERGOMETER),
+      mitAusdauer(wiedereinstieg(PHASE2_TAG_B), NACH_KRAFT_RUDERN),
+    ],
+  },
+  {
+    phase: 3,
+    label: 'Aufbau',
+    name: 'Aufbau ab 16.11.2026',
+    weeks: [36, 60],
+    gymDaysPerWeek: 3,
+    alternating: true,
+    alternationStartWeek: 34,
+    rir: '2-3',
+    restSeconds: 120,
+    info: '1 Aufwärmsatz + 3 Arbeitssätze à 8–15. Jeder Arbeitssatz endet mit 2–3 Wiederholungen Reserve (Pyramide nur mit kleinen Stufen). Alle Sätze am oberen Ende → nächste Gewichtsstufe. Echte Wiederholungen eintragen. Danach 30 Min. Ausdauer.',
+    days: [
+      mitAusdauer(aufbau(PHASE2_TAG_A), NACH_KRAFT_ERGOMETER),
+      mitAusdauer(aufbau(PHASE2_TAG_B), NACH_KRAFT_RUDERN),
+    ],
   },
 ]
