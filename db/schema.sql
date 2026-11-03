@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS walking_pad (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   date TEXT NOT NULL UNIQUE,
   duration_minutes INTEGER NOT NULL,
-  distance_km REAL NOT NULL
+  distance_km REAL NOT NULL,
+  steps INTEGER
 );
 
 -- Geräteübergreifende Nutzer-Config (Geräte-Einstellungen, eigene Fotos,

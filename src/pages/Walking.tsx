@@ -66,6 +66,9 @@ export default function Walking() {
             <div className="text-xs text-text-dim">Diese Woche</div>
             <div className="text-lg font-bold text-success">{stats.thisWeek.km.toFixed(1)} km</div>
             <div className="text-xs text-text-dim">{(stats.thisWeek.minutes / 60).toFixed(1)}h</div>
+            {stats.thisWeek.steps > 0 && (
+              <div className="text-xs text-text-dim">{stats.thisWeek.steps.toLocaleString('de-DE')} Schritte</div>
+            )}
           </div>
           <div className="bg-surface2 rounded-xl p-3 text-center">
             <div className="text-xs text-text-dim">Dieser Monat</div>

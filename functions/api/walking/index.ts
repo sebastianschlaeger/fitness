@@ -13,13 +13,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  const body = await request.json<{ date: string; duration_minutes: number; distance_km: number }>()
+  const body = await request.json<{ date: string; duration_minutes: number; distance_km: number; steps?: number | null }>()
 
+  // steps kommt von der PC-App (Tagessumme); Handeinträge ohne steps lassen einen vorhandenen Wert stehen
   const result = await env.DB.prepare(
-    `INSERT INTO walking_pad (date, duration_minutes, distance_km) VALUES (?, ?, ?)
-     ON CONFLICT(date) DO UPDATE SET duration_minutes = excluded.duration_minutes, distance_km = excluded.distance_km
+    `INSERT INTO walking_pad (date, duration_minutes, distance_km, steps) VALUES (?, ?, ?, ?)
+     ON CONFLICT(date) DO UPDATE SET duration_minutes = excluded.duration_minutes, distance_km = excluded.distance_km,
+       steps = COALESCE(excluded.steps, walking_pad.steps)
      RETURNING *`
-  ).bind(body.date, body.duration_minutes, body.distance_km).first()
+  ).bind(body.date, body.duration_minutes, body.distance_km, body.steps ?? null).first()
 
   return jsonResponse(result, 201)
 }

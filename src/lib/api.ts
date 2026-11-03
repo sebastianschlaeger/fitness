@@ -105,10 +105,11 @@ export type WalkingEntry = {
   date: string
   duration_minutes: number
   distance_km: number
+  steps: number | null
 }
 
 export type WalkingStats = {
-  thisWeek: { km: number; minutes: number }
+  thisWeek: { km: number; minutes: number; steps: number }
   thisMonth: { km: number; minutes: number }
   total: { km: number; minutes: number }
 }
