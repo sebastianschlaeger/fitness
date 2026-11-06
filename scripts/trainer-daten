@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""Liest die letzten Tage aus der Fitness-App (D1) für den Trainer. Nur lesend.
+
+Aufruf: scripts/trainer-daten [--tage 14]
+"""
+import argparse
+import json
+import os
+import subprocess
+import sys
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+REPO = Path(__file__).resolve().parents[1]
+BERLIN = ZoneInfo("Europe/Berlin")
+TAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+
+
+def geheimnis(*befehl):
+    return subprocess.run(befehl, check=True, capture_output=True, text=True).stdout.strip()
+
+
+def umgebung():
+    env = dict(os.environ)
+    env["CLOUDFLARE_ACCOUNT_ID"] = geheimnis("op", "read", "op://Development/Cloudflare/account-id")
+    roh = geheimnis(
+        "op", "item", "get", "Cloudflare", "--vault", "Development",
+        "--fields", "label=d1-api-token", "--reveal", "--format", "json",
+    )
+    env["CLOUDFLARE_API_TOKEN"] = json.loads(roh)["value"]
+    return env
+
+
+def abfrage(env, sql):
+    lauf = subprocess.run(
+        ["npx", "wrangler", "d1", "execute", "fitness-db", "--remote", "--json", "--command", sql],
+        cwd=REPO, env=env, capture_output=True, text=True,
+    )
+    if lauf.returncode != 0:
+        sys.exit(f"D1-Abfrage fehlgeschlagen: {lauf.stderr or lauf.stdout}")
+    return json.loads(lauf.stdout)[0]["results"]
+
+
+def uhrzeit(stempel):
+    if not stempel:
+        return "?"
+    return datetime.fromisoformat(stempel.replace("Z", "+00:00")).astimezone(BERLIN).strftime("%H:%M")
+
+
+def wochentag(tag):
+    return TAGE[date.fromisoformat(tag).weekday()]
+
+
+def zahl(wert):
+    return f"{wert:g}"
+
+
+def trainings(env, ab):
+    einheiten = abfrage(env, f"select id, date, day_name, started_at from workout_logs where date >= '{ab}' order by date, id")
+    print("## Trainings")
+    if not einheiten:
+        print("Keine Einträge im Zeitraum.")
+        return
+    ids = ",".join(str(e["id"]) for e in einheiten)
+    saetze = abfrage(env, f"select workout_id, exercise_id, weight_kg, reps from exercise_logs where workout_id in ({ids}) order by id")
+    fertig = abfrage(env, f"select workout_id, exercise_id, completed_at from exercise_completions where workout_id in ({ids})")
+    fertig_je = {(f["workout_id"], f["exercise_id"]): f["completed_at"] for f in fertig}
+    for e in einheiten:
+        eigene = [f for (w, _), f in fertig_je.items() if w == e["id"]]
+        ende = uhrzeit(max(eigene)) if eigene else "?"
+        print(f"\n### {e['date']} {wochentag(e['date'])} · {e['day_name']} · Start {uhrzeit(e['started_at'])}, letzte Übung fertig {ende}")
+        uebungen = {}
+        for s in saetze:
+            if s["workout_id"] == e["id"]:
+                uebungen.setdefault(s["exercise_id"], []).append(s)
+        for uebung, liste in uebungen.items():
+            status = "fertig markiert" if (e["id"], uebung) in fertig_je else "nicht fertig markiert"
+            if uebung.startswith("cardio-"):
+                print(f"- {uebung}: keine Messwerte in der App, {status}")
+            else:
+                werte = ", ".join(f"{zahl(s['weight_kg'])} kg × {s['reps']}" for s in liste)
+                print(f"- {uebung}: {werte} ({status})")
+
+
+def gewicht(env, ab):
+    zeilen = abfrage(env, f"select date, weight_kg from body_weight where date >= '{ab}' order by date")
+    print("\n## Körpergewicht")
+    if not zeilen:
+        print("Keine Einträge im Zeitraum.")
+    for z in zeilen:
+        print(f"- {z['date']} {wochentag(z['date'])}: {zahl(z['weight_kg'])} kg")
+
+
+def walking(env, ab):
+    zeilen = abfrage(env, f"select date, duration_minutes, distance_km, steps from walking_pad where date >= '{ab}' order by date")
+    print("\n## Walking Pad")
+    if not zeilen:
+        print("Keine Einträge im Zeitraum.")
+    for z in zeilen:
+        print(f"- {z['date']} {wochentag(z['date'])}: {z['duration_minutes']} min, {zahl(z['distance_km'])} km, {z['steps'] if z['steps'] is not None else '?'} Schritte")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--tage", type=int, default=14)
+    args = parser.parse_args()
+    ab = (datetime.now(BERLIN).date() - timedelta(days=args.tage)).isoformat()
+    env = umgebung()
+    print(f"# Fitness-App seit {ab} (abgerufen {datetime.now(BERLIN):%d.%m.%Y %H:%M})\n")
+    trainings(env, ab)
+    gewicht(env, ab)
+    walking(env, ab)
+
+
+if __name__ == "__main__":
+    main()
