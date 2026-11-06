@@ -317,8 +317,8 @@ const NACH_KRAFT_ERGOMETER: Exercise = {
   equipmentImage: '/images/equipment/placeholder.svg',
   sets: 1,
   isCardio: true,
-  durationMinutes: 20,
-  durationRamp: { startWeek: 34, startMinutes: 20, stepMinutes: 5, maxMinutes: 30 },
+  durationMinutes: 15,
+  durationRamp: { startWeek: 34, startMinutes: 15, stepMinutes: 5, maxMinutes: 30 },
   hints: `${MODERAT} Durchschnitts-Watt notieren — steigt das bei gleichem Gefühl, bist du fitter. Dazu Podcast.`,
 }
 
@@ -329,8 +329,8 @@ const NACH_KRAFT_RUDERN: Exercise = {
   equipmentImage: '/images/equipment/placeholder.svg',
   sets: 1,
   isCardio: true,
-  durationMinutes: 20,
-  durationRamp: { startWeek: 34, startMinutes: 20, stepMinutes: 5, maxMinutes: 30 },
+  durationMinutes: 15,
+  durationRamp: { startWeek: 34, startMinutes: 15, stepMinutes: 5, maxMinutes: 30 },
   hints: `${MODERAT} Je Zug: Beine – Oberkörper – Arme, zurück umgekehrt. Zeit pro 500 m notieren. Zwickt die linke Schulter, auf Ergometer wechseln.`,
 }
 
@@ -424,7 +424,7 @@ export const phases: Phase[] = [
     restSeconds: 150,
     loadFactor: 0.6,
     alternationStartWeek: 34,
-    info: '2 Sätze à 10–12, Gewichte auf 60 % vom letzten Mal vorbelegt. Nach jedem Satz sollten noch 3–4 Wiederholungen drin sein. Danach Ausdauer (20 Min., nächste Woche 25). Di/Do kein Studio, Sa oder So lange Ausdauer.',
+    info: '2 Sätze à 10–12, Gewichte auf 60 % vom letzten Mal vorbelegt. Nach jedem Satz sollten noch 3–4 Wiederholungen drin sein. Danach Ausdauer (15 Min., nächste Woche 20). Di/Do kein Studio, Sa oder So lange Ausdauer.',
     days: [
       mitAusdauer(wiedereinstieg(PHASE2_TAG_A), NACH_KRAFT_ERGOMETER),
       mitAusdauer(wiedereinstieg(PHASE2_TAG_B), NACH_KRAFT_RUDERN),
@@ -440,7 +440,7 @@ export const phases: Phase[] = [
     alternationStartWeek: 34,
     rir: '2-3',
     restSeconds: 120,
-    info: '1 Aufwärmsatz + 3 Arbeitssätze à 8–15. Jeder Arbeitssatz endet mit 2–3 Wiederholungen Reserve (Pyramide nur mit kleinen Stufen). Alle Sätze am oberen Ende → nächste Gewichtsstufe. Echte Wiederholungen eintragen. Danach 30 Min. Ausdauer.',
+    info: '1 Aufwärmsatz + 3 Arbeitssätze à 8–15. Jeder Arbeitssatz endet mit 2–3 Wiederholungen Reserve (Pyramide nur mit kleinen Stufen). Alle Sätze am oberen Ende → nächste Gewichtsstufe. Echte Wiederholungen eintragen. Danach Ausdauer (25 Min., ab 23.11. 30).',
     days: [
       mitAusdauer(aufbau(PHASE2_TAG_A), NACH_KRAFT_ERGOMETER),
       mitAusdauer(aufbau(PHASE2_TAG_B), NACH_KRAFT_RUDERN),
