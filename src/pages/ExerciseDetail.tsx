@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getCurrentPhase, getLoadFactor, getTodaysTraining, today } from '../lib/dates'
+import { nextStage, snapToStage } from '../data/weightStages'
 import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, getExerciseHistory, type WorkoutLog, type ExerciseHistoryPoint } from '../lib/api'
 import { orderExercises } from '../lib/exerciseOrder'
 import { getDeferred, addDeferred, orderByDeferred } from '../lib/skipQueue'
@@ -315,7 +316,7 @@ export default function ExerciseDetail() {
         prefilled = Array.from({ length: total }, (_, i) => {
           const last = pickAligned(sorted, total, i)
           return {
-            weight_kg: factor === 1 ? last?.weight_kg || 0 : Math.round(((last?.weight_kg || 0) * factor) / 2.5) * 2.5,
+            weight_kg: snapToStage(exercise.id, (last?.weight_kg || 0) * factor),
             reps: last?.reps || 0,
             completed: false,
           }
@@ -347,7 +348,7 @@ export default function ExerciseDetail() {
     const bumpable = (s: SetData, i: number) => i >= warmupCount && !s.completed && s.weight_kg > 0
     if (!sets.some((s, i) => bumpable(s, i))) return
     const updated = sets.map((s, i) =>
-      bumpable(s, i) ? { ...s, weight_kg: round1(s.weight_kg + step) } : s
+      bumpable(s, i) ? { ...s, weight_kg: nextStage(exercise?.id ?? '', s.weight_kg) ?? round1(s.weight_kg + step) } : s
     )
     setSets(updated)
     triggerAutoSave(updated)
@@ -460,6 +461,8 @@ export default function ExerciseDetail() {
 
   const allDone = sets.length > 0 && sets.every(s => s.completed)
   const step = computeStep(sets, warmupCount)
+  const lastWeight = sets[sets.length - 1]?.weight_kg ?? 0
+  const bumpLabel = nextStage(exercise?.id ?? '', lastWeight) === null ? `+${step} kg alle` : 'nächste Stufe'
 
   // „Top-Satz zuletzt erhöht": aus der DB-Historie (max. Gewicht je Tag), aber den
   // aktuell eingetragenen Top-Satz für `date` eingemischt, damit ein Bump im
@@ -557,7 +560,7 @@ export default function ExerciseDetail() {
                     onClick={bumpAllSets}
                     className="rounded-lg bg-accent/15 border border-accent/30 text-accent-light text-xs font-semibold px-2.5 py-1 active:bg-accent/25 transition-colors whitespace-nowrap"
                   >
-                    ⬆ +{step} kg alle
+                    ⬆ {bumpLabel}
                   </button>
                 )}
               </div>

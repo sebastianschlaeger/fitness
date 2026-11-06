@@ -198,7 +198,7 @@ const PHASE2_TAG_B: TrainingDay = {
     {
       id: 'beinstrecker-technogym',
       name: 'Beinstrecker',
-      equipment: 'Technogym Leg Extension',
+      equipment: 'BH Leg Extension',
       equipmentImage: '/images/equipment/technogym-leg-extension.jpg',
       sets: 3,
       reps: '8-15',
