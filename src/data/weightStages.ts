@@ -50,18 +50,21 @@ export function nextStage(exerciseId: string, kg: number): number | null {
 }
 
 /**
- * Steigende Reihe je Übung: Das Aufrunden auf echte Stufen lässt Nachbarsätze
- * zusammenfallen. Der schwerste Satz bleibt, jeder Satz davor geht bei Bedarf
- * auf die nächstleichtere Stufe.
+ * Reihe einer Übung aus dem schwersten Satz der letzten Einheit: Die Arbeitssätze
+ * enden auf diesem Gewicht und liegen je eine Stufe auseinander, der Aufwärmsatz
+ * liegt bei etwa 60 % davon und immer unter dem ersten Arbeitssatz.
  */
-export function risingStages(exerciseId: string, weights: number[]): number[] {
+const WARMUP_SHARE = 0.6
+
+export function setWeights(exerciseId: string, heaviest: number, warmupCount: number, workSets: number): number[] | null {
   const stages = WEIGHT_STAGES[exerciseId]
-  if (!stages) return weights
-  const rising = [...weights]
-  for (let i = rising.length - 2; i >= 0; i--) {
-    if (rising[i] <= 0 || rising[i] < rising[i + 1]) continue
-    const lighter = stages.filter(s => s < rising[i + 1]).pop()
-    if (lighter !== undefined) rising[i] = lighter
-  }
-  return rising
+  if (!stages || heaviest <= 0) return null
+  const top = stages.indexOf(snapToStage(exerciseId, heaviest))
+  const work = Array.from({ length: workSets }, (_, i) => stages[Math.max(0, top - (workSets - 1 - i))])
+  if (warmupCount === 0) return work
+  const lighter = stages.filter(s => s < work[0])
+  if (lighter.length === 0) return [work[0], ...work]
+  const target = heaviest * WARMUP_SHARE
+  const warmup = lighter.reduce((best, s) => (Math.abs(s - target) < Math.abs(best - target) ? s : best))
+  return [warmup, ...work]
 }

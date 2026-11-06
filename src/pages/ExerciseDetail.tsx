@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getCurrentPhase, getLoadFactor, getTodaysTraining, today } from '../lib/dates'
-import { nextStage, risingStages, snapToStage } from '../data/weightStages'
+import { nextStage, setWeights, snapToStage } from '../data/weightStages'
 import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, getExerciseHistory, type WorkoutLog, type ExerciseHistoryPoint } from '../lib/api'
 import { orderExercises } from '../lib/exerciseOrder'
 import { getDeferred, addDeferred, orderByDeferred } from '../lib/skipQueue'
@@ -313,16 +313,16 @@ export default function ExerciseDetail() {
         const lastSets = await getLastExerciseSets(exercise.id)
         const sorted = [...lastSets].sort((a, b) => a.set_number - b.set_number)
         const factor = getLoadFactor(phase, sorted[0]?.workout_date)
+        const heaviest = Math.max(0, ...sorted.map(s => s.weight_kg)) * factor
+        const planned = setWeights(exercise.id, heaviest, warmupCount, exercise.sets)
         prefilled = Array.from({ length: total }, (_, i) => {
           const last = pickAligned(sorted, total, i)
           return {
-            weight_kg: snapToStage(exercise.id, (last?.weight_kg || 0) * factor),
+            weight_kg: planned?.[i] ?? snapToStage(exercise.id, (last?.weight_kg || 0) * factor),
             reps: last?.reps || 0,
             completed: false,
           }
         })
-        const rising = risingStages(exercise.id, prefilled.map(s => s.weight_kg))
-        prefilled = prefilled.map((s, i) => ({ ...s, weight_kg: rising[i] }))
       }
       setSets(prefilled)
       setLoading(false)
