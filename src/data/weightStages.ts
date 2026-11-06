@@ -2,7 +2,8 @@
  * Echte Gewichtsstufen je Übung (Stand 06.11.2026).
  *
  * BH: Beschriftung abgelesen vom Blockfoto (bis 70 kg), Rest aus dem Plattenaufbau.
- * Technogym: Herstellerangaben und Sebastians Einträge.
+ * Technogym: offizielle Ersatzteillisten und Blockfoto. Blöcke in 5-kg-Schritten plus
+ * gelber Zusatzknopf 2,5 kg, dadurch 2,5-kg-Schritte. Die Beinpresse hat keinen Zusatzknopf.
  * Herleitung: ~/dokumente/gesundheit/training/gewichtsstufen.md
  */
 
@@ -12,18 +13,18 @@ function ladder(from: number, to: number, step: number): number[] {
   return stages
 }
 
-const TECHNOGYM_5KG = ladder(5, 130, 5)
-const TECHNOGYM_BEINPRESSE = ladder(10, 190, 10)
+const TECHNOGYM_MIT_ZUSATZ = ladder(2.5, 132.5, 2.5)
+const TECHNOGYM_BEINPRESSE = [5, ...ladder(10, 250, 10)]
 const BH_BLOCK = [5, 7.5, 10, 12.5, 17.5, 22.5, 30, 35, 42.5, 50, 57.5, 62.5, 70, 77.5, 85, 90]
 const SCHEIBEN = ladder(2.5, 150, 2.5)
 const KURZHANTELN = ladder(2.5, 50, 2.5)
 
 const WEIGHT_STAGES: Record<string, number[]> = {
-  'latzug-technogym': TECHNOGYM_5KG,
-  'brustpresse-technogym': TECHNOGYM_5KG,
-  'rudern-technogym': TECHNOGYM_5KG,
-  'beinbeuger-technogym': TECHNOGYM_5KG,
-  'bauchmaschine-technogym': TECHNOGYM_5KG,
+  'latzug-technogym': TECHNOGYM_MIT_ZUSATZ,
+  'brustpresse-technogym': TECHNOGYM_MIT_ZUSATZ,
+  'rudern-technogym': TECHNOGYM_MIT_ZUSATZ,
+  'beinbeuger-technogym': TECHNOGYM_MIT_ZUSATZ,
+  'bauchmaschine-technogym': TECHNOGYM_MIT_ZUSATZ,
   'beinpresse-technogym': TECHNOGYM_BEINPRESSE,
   // Die ID ist historisch: Das Gerät im Studio ist ein BH-Beinstrecker.
   'beinstrecker-technogym': BH_BLOCK,
