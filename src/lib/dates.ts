@@ -33,6 +33,14 @@ export function getCurrentPhase(date: string = today()): Phase {
   return phases[phases.length - 1]
 }
 
+/** Vorbelegungs-Faktor: gilt nur für Werte von vor Phasenbeginn, sonst würde er je Einheit erneut abziehen */
+export function getLoadFactor(phase: Phase, lastWorkoutDate?: string): number {
+  if (!phase.loadFactor || !lastWorkoutDate) return 1
+  const start = new Date(PLAN_START_DATE)
+  start.setUTCDate(start.getUTCDate() + (phase.weeks[0] - 1) * 7)
+  return lastWorkoutDate < start.toISOString().split('T')[0] ? phase.loadFactor : 1
+}
+
 /** Get day of week (1=Mon, 7=Sun) */
 export function getDayOfWeek(date: string = today()): number {
   const d = new Date(date)

@@ -4,7 +4,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env }) => {
   const exerciseId = params.exerciseId
 
   const result = await env.DB.prepare(
-    `SELECT el.* FROM exercise_logs el
+    `SELECT el.*, wl.date AS workout_date FROM exercise_logs el
      JOIN workout_logs wl ON el.workout_id = wl.id
      WHERE el.exercise_id = ?
      ORDER BY wl.date DESC, el.set_number ASC

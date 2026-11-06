@@ -49,6 +49,7 @@ export type ExerciseLog = {
   reps: number
   is_top_set: number
   is_completed: number
+  workout_date?: string
 }
 
 export function getLastExerciseSets(exerciseId: string) {

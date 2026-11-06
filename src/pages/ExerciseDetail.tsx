@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { getCurrentPhase, getTodaysTraining, today } from '../lib/dates'
+import { getCurrentPhase, getLoadFactor, getTodaysTraining, today } from '../lib/dates'
 import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, getExerciseHistory, type WorkoutLog, type ExerciseHistoryPoint } from '../lib/api'
 import { orderExercises } from '../lib/exerciseOrder'
 import { getDeferred, addDeferred, orderByDeferred } from '../lib/skipQueue'
@@ -311,9 +311,9 @@ export default function ExerciseDetail() {
         // (Top-Satz auf Top-Satz), damit der neue Aufwärmsatz vorne leer bleibt.
         const lastSets = await getLastExerciseSets(exercise.id)
         const sorted = [...lastSets].sort((a, b) => a.set_number - b.set_number)
+        const factor = getLoadFactor(phase, sorted[0]?.workout_date)
         prefilled = Array.from({ length: total }, (_, i) => {
           const last = pickAligned(sorted, total, i)
-          const factor = phase.loadFactor ?? 1
           return {
             weight_kg: factor === 1 ? last?.weight_kg || 0 : Math.round(((last?.weight_kg || 0) * factor) / 2.5) * 2.5,
             reps: last?.reps || 0,
