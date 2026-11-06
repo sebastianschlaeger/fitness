@@ -48,3 +48,20 @@ export function nextStage(exerciseId: string, kg: number): number | null {
   if (!stages) return null
   return stages.find(s => s > kg) ?? null
 }
+
+/**
+ * Steigende Reihe je Übung: Das Aufrunden auf echte Stufen lässt Nachbarsätze
+ * zusammenfallen. Der schwerste Satz bleibt, jeder Satz davor geht bei Bedarf
+ * auf die nächstleichtere Stufe.
+ */
+export function risingStages(exerciseId: string, weights: number[]): number[] {
+  const stages = WEIGHT_STAGES[exerciseId]
+  if (!stages) return weights
+  const rising = [...weights]
+  for (let i = rising.length - 2; i >= 0; i--) {
+    if (rising[i] <= 0 || rising[i] < rising[i + 1]) continue
+    const lighter = stages.filter(s => s < rising[i + 1]).pop()
+    if (lighter !== undefined) rising[i] = lighter
+  }
+  return rising
+}

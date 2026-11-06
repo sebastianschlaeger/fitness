@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getCurrentPhase, getLoadFactor, getTodaysTraining, today } from '../lib/dates'
-import { nextStage, snapToStage } from '../data/weightStages'
+import { nextStage, risingStages, snapToStage } from '../data/weightStages'
 import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, getExerciseHistory, type WorkoutLog, type ExerciseHistoryPoint } from '../lib/api'
 import { orderExercises } from '../lib/exerciseOrder'
 import { getDeferred, addDeferred, orderByDeferred } from '../lib/skipQueue'
@@ -321,6 +321,8 @@ export default function ExerciseDetail() {
             completed: false,
           }
         })
+        const rising = risingStages(exercise.id, prefilled.map(s => s.weight_kg))
+        prefilled = prefilled.map((s, i) => ({ ...s, weight_kg: rising[i] }))
       }
       setSets(prefilled)
       setLoading(false)
