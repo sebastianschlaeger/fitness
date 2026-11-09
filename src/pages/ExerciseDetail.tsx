@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getCurrentPhase, getLoadFactor, getTodaysTraining, today } from '../lib/dates'
 import { nextStage, setWeights, snapToStage, stageBelow } from '../data/weightStages'
@@ -103,7 +103,11 @@ export default function ExerciseDetail() {
   const isCatchUp = !!dateParam && dateParam !== today()
   const dateQuery = isCatchUp ? `?date=${date}` : ''
   const phase = getCurrentPhase(date)
-  const trainingDay = getTodaysTraining(date)
+  // Stabil halten: getTodaysTraining baut Cardio-Übungen (Dauer je Woche) bei jedem
+  // Aufruf neu. Ein neues `exercise`-Objekt je Render ließ den sendBeacon-Effekt bei
+  // jedem Render feuern — beim Sprung von der Kraftübung zum Cardio wurden so deren
+  // abgehakte Sätze unter der Cardio-Übung gespeichert („Cardio abgeschlossen“).
+  const trainingDay = useMemo(() => getTodaysTraining(date), [date])
   const exercise = trainingDay?.exercises.find(e => e.id === exerciseId)
   const customImage = useCustomImage(exercise?.id ?? '')
 
