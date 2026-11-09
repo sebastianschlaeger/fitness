@@ -5,8 +5,6 @@ import { nextStage, setWeights, snapToStage } from '../data/weightStages'
 import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, getExerciseHistory, type WorkoutLog, type ExerciseHistoryPoint } from '../lib/api'
 import { orderExercises } from '../lib/exerciseOrder'
 import { getDeferred, addDeferred, orderByDeferred } from '../lib/skipQueue'
-import { useTimer } from '../lib/timer'
-import { useWakeLock } from '../lib/wakeLock'
 import { useCustomImage, captureCustomImage, removeCustomImage } from '../lib/customImages'
 import { getMachineAdjustments, machineIdFromImage } from '../data/machineAdjustments'
 import SetInput from '../components/SetInput'
@@ -39,27 +37,6 @@ function computeStep(sets: SetData[], warmupCount: number): number {
     if (delta > 0) return delta
   }
   return DEFAULT_STEP_KG
-}
-
-/**
- * Automatik-Timing: Basis-Wartezeit für den ersten Satz, danach pro Satz +15 s —
- * späte (schwere) Sätze brauchen mehr Pause als die ersten.
- */
-const AUTO_BASE_SECONDS = 90
-const AUTO_STEP_SECONDS = 15
-/** Vor dem letzten Satz gibt es 30 s Extra-Pause (schwerster Satz, volle Erholung). */
-const EXTRA_BEFORE_LAST_SET_SECONDS = 30
-/** Wartezeit für den Satz an Position `index` (0-basiert): 90 s, 105 s, 120 s, … */
-function autoSetSeconds(index: number): number {
-  return AUTO_BASE_SECONDS + index * AUTO_STEP_SECONDS
-}
-/**
- * Tatsächliche Pausenlänge, die vor dem Satz an `index` läuft (bei `total` Sätzen).
- * Die Pause direkt vor dem letzten Satz bekommt +30 s.
- */
-function restBeforeSetSeconds(index: number, total: number): number {
-  const extra = index === total - 2 ? EXTRA_BEFORE_LAST_SET_SECONDS : 0
-  return autoSetSeconds(index) + extra
 }
 
 /** Ganze Tage zwischen zwei ISO-Daten (YYYY-MM-DD), UTC-basiert wie today(). */
@@ -128,7 +105,6 @@ export default function ExerciseDetail() {
   const phase = getCurrentPhase(date)
   const trainingDay = getTodaysTraining(date)
   const exercise = trainingDay?.exercises.find(e => e.id === exerciseId)
-  const timer = useTimer()
   const customImage = useCustomImage(exercise?.id ?? '')
 
   // Ein echter Aufwärmsatz (sehr leicht) vor den Arbeitssätzen — nur bei Kraft.
@@ -144,67 +120,18 @@ export default function ExerciseDetail() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [finishing, setFinishing] = useState(false)
-  // Automatik: hands-free Ablauf mit Timer pro Satz (60 s, je Satz +15 s) und „Start".
-  const [auto, setAuto] = useState(false)
-  const [autoIndex, setAutoIndex] = useState(0)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const setsRef = useRef<SetData[]>([])
   const workoutRef = useRef<WorkoutLog | null>(null)
-  const autoRef = useRef(false)
-  const autoIndexRef = useRef(0)
   // Synchroner Re-Entry-Schutz für finishExercise (State `finishing` hinkt einen
   // Commit hinterher → Doppeltipp/Doppel-Abschluss möglich).
   const finishingRef = useRef(false)
   // Serialisiert Speichervorgänge (siehe saveToServer).
   const saveChainRef = useRef<Promise<void>>(Promise.resolve())
-  // Immer auf die neueste advanceAuto-Closure zeigen, damit der einmalig
-  // registrierte onElapse-Hörer nicht auf veraltetem State arbeitet.
-  const advanceRef = useRef<() => void>(() => {})
 
   // Keep refs in sync
   useEffect(() => { setsRef.current = sets }, [sets])
   useEffect(() => { workoutRef.current = workout }, [workout])
-  useEffect(() => { autoRef.current = auto }, [auto])
-  useEffect(() => { autoIndexRef.current = autoIndex }, [autoIndex])
-
-  // Timer-Ablauf abonnieren (nur natürliches Ende, nicht stop()) → Sequenz weiter
-  const { onElapse, onStop } = timer
-  useEffect(() => onElapse(() => advanceRef.current()), [onElapse])
-
-  // Echter externer Stopp (z.B. „Fertig" in der FloatingTimer-Leiste) → Automatik
-  // sauber beenden. Bewusst NICHT an `isRunning` gekoppelt: beim natürlichen Ablauf
-  // wird isRunning ebenfalls false, aber React feuert den Kind-Effekt VOR dem
-  // Eltern-Elapse-Effekt — ein isRunning-Watchdog würde die Sequenz dann fälschlich
-  // stoppen, bevor advanceAuto den nächsten Satz starten kann.
-  useEffect(() => onStop(() => setAuto(false)), [onStop])
-
-  // Bildschirm wach halten, solange die Automatik läuft — sonst dunkelt das
-  // Handy ab, friert den Satz-Timer ein und die „Start"-Ansage bliebe stumm.
-  useWakeLock(auto)
-
-  // Startet den (mit jedem Satz um 15 s längeren) Timer für den laufenden Satz.
-  // Die Pause direkt vor dem letzten Satz bekommt +30 s Extra (restBeforeSetSeconds).
-  // Der LETZTE Satz bekommt keinen Ruhe-Countdown mehr: er wurde bereits von der
-  // „Start"-Ansage des vorletzten Satzes angekündigt → die Übung wird direkt
-  // abgeschlossen, und die anschließende „Pause vor: nächste Übung" deckt das
-  // Ausführen des letzten Satzes mit ab. (Früher lief hier noch ein stiller
-  // ~90–120 s-Countdown ohne Zweck.)
-  useEffect(() => {
-    if (!auto || !exercise) return
-    const total = setsRef.current.length
-    if (total === 0 || autoIndex >= total) return
-    if (autoIndex === total - 1) {
-      setAuto(false)
-      const updated = setsRef.current.map(s => ({ ...s, completed: true }))
-      setSets(updated)
-      finishExercise(updated)
-      return
-    }
-    const label = `${exercise.name} · Satz ${autoIndex + 1}/${total}`
-    timer.start(restBeforeSetSeconds(autoIndex, total), label, { cue: 'start' })
-    // exercise/timer sind stabil genug; bewusst nur auf auto+autoIndex reagieren.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auto, autoIndex])
 
   // Serialisiert: jeder Save wartet auf den vorherigen, damit ein älterer, noch
   // fliegender Request (z.B. ein gerade abgefeuerter Debounce-Save mit
@@ -275,8 +202,6 @@ export default function ExerciseDetail() {
     setSaving(false)
     setFinishing(false)
     finishingRef.current = false
-    setAuto(false)
-    setAutoIndex(0)
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
 
     async function load() {
@@ -357,55 +282,16 @@ export default function ExerciseDetail() {
     triggerFx()
   }
 
-  // --- Automatik (hands-free) ---------------------------------------------
-  // Ablauf: Satz 1 sofort machen → Timer (60 s, je Satz +15 s) → „Start" → Satz 2
-  // → … → „Start" für den letzten Satz → Übung wird sofort abgeschlossen (KEIN
-  // weiterer Countdown), danach läuft nur noch die „Pause vor: nächste Übung".
-
-  function startAuto() {
-    // finishingRef prüfen: sonst könnte ein noch laufender manueller Abschluss den
-    // automatischen finishExercise am Ende der Sequenz verschlucken.
-    if (autoRef.current || finishingRef.current) return
-    // Beim ersten noch offenen Satz fortsetzen (nicht stur bei Satz 1) — wichtig
-    // nach „Automatik stoppen" und nach einem Reload mit teils erledigten Sätzen.
-    const firstOpen = sets.findIndex(s => !s.completed)
-    if (firstOpen === -1) return // alle Sätze schon erledigt → nichts zu tun
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    setAutoIndex(firstOpen)
-    setAuto(true) // löst den [auto, autoIndex]-Effekt aus → startet Timer
-  }
-
-  function stopAuto() {
-    setAuto(false)
-    timer.stop()
-  }
-
-  // Wird beim natürlichen Ablauf des Satz-Timers aufgerufen (über advanceRef).
-  function advanceAuto() {
-    if (!autoRef.current) return
-    // Offenen Debounce-Save abbrechen: dessen Snapshot hätte den gerade laufenden
-    // Satz noch completed:false und würde die hier gesetzte Completion überschreiben.
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    const i = autoIndexRef.current
-    const updated = setsRef.current.map((s, idx) => idx <= i ? { ...s, completed: true } : s)
-    setSets(updated)
-    if (i >= updated.length - 1) {
-      // Letzter Satz erledigt → Übung abschließen (saveToServer passiert dort).
-      setAuto(false)
-      finishExercise(updated)
-    } else {
-      saveToServer(updated)
-      setAutoIndex(i + 1) // löst den Effekt aus → nächster (längerer) Satz-Timer
-    }
-  }
-  advanceRef.current = advanceAuto
-
   async function finishExercise(currentSets?: SetData[]) {
     if (!workout || !exercise || finishingRef.current) return
     finishingRef.current = true
     setFinishing(true)
     const setsToSave = currentSets || sets
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    // Abgehakten Stand sofort übernehmen — sonst schickt der sendBeacon beim
+    // Verlassen der Seite den alten Stand (completed:false) hinterher.
+    setsRef.current = setsToSave
+    setSets(setsToSave)
     try {
       await saveToServer(setsToSave)
       await completeExercise(workout.id, exercise.id)
@@ -421,12 +307,9 @@ export default function ExerciseDetail() {
         const nextExercise = findNextUnfinished(ordered, exercise.id, completedIds)
 
         if (nextExercise) {
-          // Sofort die nächste Übung anzeigen — die Pause läuft oben weiter.
-          timer.start(phase.restSeconds || 120, `Pause vor: ${nextExercise.name}`)
           navigate(`/training/${nextExercise.id}${dateQuery}`, { replace: true })
         } else {
           // All exercises done → Feuerwerk feiern, dann zurück zur Übersicht
-          timer.stop()
           triggerFx()
           await new Promise(r => setTimeout(r, 1200))
           navigate(`/training${dateQuery}`)
@@ -495,7 +378,7 @@ export default function ExerciseDetail() {
         <img
           src={customImage || exercise.equipmentImage}
           alt={exercise.equipment}
-          className={`w-full object-contain rounded-xl bg-surface transition-all ${auto ? 'h-20' : 'h-48'}`}
+          className={`w-full object-contain rounded-xl bg-surface h-48`}
           onError={(e) => {
             const img = e.target as HTMLImageElement
             if (!img.src.endsWith('/images/equipment/placeholder.svg')) {
@@ -503,7 +386,7 @@ export default function ExerciseDetail() {
             }
           }}
         />
-        <div className={`absolute bottom-2 right-2 flex gap-2 ${auto ? 'hidden' : ''}`}>
+        <div className="absolute bottom-2 right-2 flex gap-2">
           {customImage && (
             <button
               onClick={() => removeCustomImage(exercise.id)}
@@ -579,8 +462,6 @@ export default function ExerciseDetail() {
                     label={label}
                     isWarmup={isWarmup}
                     isTopSet={isTopSet}
-                    isActive={auto && i === autoIndex}
-                    large={auto}
                     data={set}
                     onChange={(field, value) => updateSet(i, field, value)}
                   />
@@ -589,50 +470,23 @@ export default function ExerciseDetail() {
             </div>
           </div>
 
-          {auto ? (
-            <div className="space-y-2">
-              <div className="rounded-xl bg-surface border border-border p-3 text-center text-xs text-text-dim">
-                Automatik läuft · bei „Start" den nächsten Satz beginnen. Nach dem letzten Satz endet die Übung automatisch.
-              </div>
-              <button
-                onClick={stopAuto}
-                className="w-full rounded-xl p-3 text-center font-semibold text-white bg-danger/80 active:bg-danger transition-colors"
-              >
-                ⏹ Automatik stoppen
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {!allDone && (
-                <button
-                  onClick={startAuto}
-                  disabled={finishing}
-                  className={`w-full rounded-xl p-3 text-center font-semibold text-white transition-colors ${
-                    finishing ? 'bg-accent/40 cursor-wait' : 'bg-accent active:bg-accent/80'
-                  }`}
-                >
-                  ▶ Automatik starten · {sets.findIndex(s => !s.completed) > 0 ? 'fortsetzen' : `${sets.length} Sätze · Pause ${AUTO_BASE_SECONDS}–${restBeforeSetSeconds(sets.length - 2, sets.length)}s`}
-                </button>
-              )}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => finishExercise(sets.map(s => ({ ...s, completed: true })))}
-                  disabled={finishing}
-                  className={`flex-1 rounded-xl p-2 text-center text-sm font-medium border border-border transition-colors ${
-                    finishing ? 'text-text-dim cursor-wait' : 'text-text-dim active:bg-surface2'
-                  }`}
-                >
-                  {finishing ? 'Schließe ab…' : 'Übung abschließen'}
-                </button>
-                <button
-                  onClick={handleSkip}
-                  className="flex-1 rounded-xl p-2 text-center text-sm text-accent-light font-medium border border-border active:bg-surface2 transition-colors"
-                >
-                  Gerät besetzt
-                </button>
-              </div>
-            </div>
-          )}
+          <div className="space-y-2">
+            <button
+              onClick={() => finishExercise(sets.map(s => ({ ...s, completed: true })))}
+              disabled={finishing}
+              className={`w-full rounded-xl p-3 text-center font-semibold text-white transition-colors ${
+                finishing ? 'bg-accent/40 cursor-wait' : 'bg-accent active:bg-accent/80'
+              }`}
+            >
+              {finishing ? 'Schließe ab…' : 'Übung abschließen'}
+            </button>
+            <button
+              onClick={handleSkip}
+              className="w-full rounded-xl p-2 text-center text-sm text-accent-light font-medium border border-border active:bg-surface2 transition-colors"
+            >
+              Gerät besetzt
+            </button>
+          </div>
 
           {getMachineAdjustments(exercise.equipmentImage).length > 0 && (
             <div className="mt-4">

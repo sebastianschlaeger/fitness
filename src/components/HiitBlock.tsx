@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import type { Exercise } from '../data/training-plan'
-import { unlockAudio, playBeep, speak } from '../lib/timer'
+import { unlockAudio, playBeep, speak } from '../lib/audio'
 
 type SegKind = 'warmup' | 'work' | 'rest' | 'cooldown'
 type Seg = { kind: SegKind; label: string; seconds: number; round: number }
