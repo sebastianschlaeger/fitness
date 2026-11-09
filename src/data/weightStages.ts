@@ -49,22 +49,23 @@ export function nextStage(exerciseId: string, kg: number): number | null {
   return stages.find(s => s > kg) ?? null
 }
 
-/**
- * Reihe einer Übung aus dem schwersten Satz der letzten Einheit: Die Arbeitssätze
- * enden auf diesem Gewicht und liegen je eine Stufe auseinander, der Aufwärmsatz
- * liegt bei etwa 60 % davon und immer unter dem ersten Arbeitssatz.
- */
-const WARMUP_SHARE = 0.6
-
-export function setWeights(exerciseId: string, heaviest: number, warmupCount: number, workSets: number): number[] | null {
+/** Echte Stufe direkt unter `kg`, oder null ohne Stufenliste bzw. am Blockanfang. */
+export function stageBelow(exerciseId: string, kg: number): number | null {
   const stages = WEIGHT_STAGES[exerciseId]
-  if (!stages || heaviest <= 0) return null
-  const top = stages.indexOf(snapToStage(exerciseId, heaviest))
-  const work = Array.from({ length: workSets }, (_, i) => stages[Math.max(0, top - (workSets - 1 - i))])
+  if (!stages) return null
+  const lower = stages.filter(s => s < kg)
+  return lower.length > 0 ? lower[lower.length - 1] : null
+}
+
+/**
+ * Reihe einer Übung aus dem schwersten Satz der letzten Einheit: Alle Arbeitssätze
+ * liegen auf diesem Gewicht, der Aufwärmsatz eine Stufe darunter (am Blockanfang
+ * auf derselben Stufe).
+ */
+export function setWeights(exerciseId: string, heaviest: number, warmupCount: number, workSets: number): number[] | null {
+  if (!WEIGHT_STAGES[exerciseId] || heaviest <= 0) return null
+  const top = snapToStage(exerciseId, heaviest)
+  const work = Array.from({ length: workSets }, () => top)
   if (warmupCount === 0) return work
-  const lighter = stages.filter(s => s < work[0])
-  if (lighter.length === 0) return [work[0], ...work]
-  const target = heaviest * WARMUP_SHARE
-  const warmup = lighter.reduce((best, s) => (Math.abs(s - target) < Math.abs(best - target) ? s : best))
-  return [warmup, ...work]
+  return [stageBelow(exerciseId, top) ?? top, ...work]
 }

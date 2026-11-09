@@ -110,7 +110,7 @@ export default function Plan() {
           <li><span className="font-semibold text-text-primary">Nie-Null-Regel:</span> Jeden Tag mindestens eine Aktivität — Gym oder Walking Pad. Kein Tag bei Null.</li>
           <li><span className="font-semibold text-text-primary">2-Tage-Schutz:</span> Maximal 2 Ruhetage am Stück. Am 3. Tag wird trainiert, egal wie.</li>
           <li><span className="font-semibold text-text-primary">Krankheitsregel:</span> Bei Krankheit: Walking Pad statt Gym. Nur bei Fieber komplett pausieren.</li>
-          <li><span className="font-semibold text-text-primary">Pyramide:</span> Am Gerät aufwärmen, Gewicht steigern, letzter Satz schwer aber 2-3 Wdh Reserve.</li>
+          <li><span className="font-semibold text-text-primary">Sätze:</span> Aufwärmsatz eine Stufe unter dem Arbeitsgewicht, alle Arbeitssätze auf demselben Gewicht, 2-3 Wdh Reserve.</li>
         </ul>
       </div>
     </div>

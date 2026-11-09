@@ -440,7 +440,7 @@ export const phases: Phase[] = [
     alternationStartWeek: 34,
     rir: '2-3',
     restSeconds: 120,
-    info: '1 Aufwärmsatz + 3 Arbeitssätze à 8–15. Jeder Arbeitssatz endet mit 2–3 Wiederholungen Reserve (Pyramide nur mit kleinen Stufen). Alle Sätze am oberen Ende → nächste Gewichtsstufe. Echte Wiederholungen eintragen. Danach Ausdauer (25 Min., ab 23.11. 30).',
+    info: '1 Aufwärmsatz + 3 Arbeitssätze à 8–15. Alle Arbeitssätze auf demselben Gewicht, der Aufwärmsatz eine Stufe darunter; jeder Arbeitssatz endet mit 2–3 Wiederholungen Reserve. Alle Sätze am oberen Ende → nächste Gewichtsstufe. Echte Wiederholungen eintragen. Danach Ausdauer (25 Min., ab 23.11. 30).',
     days: [
       mitAusdauer(aufbau(PHASE2_TAG_A), NACH_KRAFT_ERGOMETER),
       mitAusdauer(aufbau(PHASE2_TAG_B), NACH_KRAFT_RUDERN),

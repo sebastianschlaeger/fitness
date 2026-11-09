@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getCurrentPhase, getLoadFactor, getTodaysTraining, today } from '../lib/dates'
-import { nextStage, setWeights, snapToStage } from '../data/weightStages'
+import { nextStage, setWeights, snapToStage, stageBelow } from '../data/weightStages'
 import { getTodaysWorkout, startWorkout, getLastExerciseSets, getExerciseSetData, logExerciseSets, completeExercise, getWorkoutExercises, getExerciseHistory, type WorkoutLog, type ExerciseHistoryPoint } from '../lib/api'
 import { orderExercises } from '../lib/exerciseOrder'
 import { getDeferred, addDeferred, orderByDeferred } from '../lib/skipQueue'
@@ -269,13 +269,21 @@ export default function ExerciseDetail() {
     triggerAutoSave(updated)
   }
 
-  // Alle noch offenen Arbeitssätze um eine Stufe anheben. Der Aufwärmsatz
-  // (Index < warmupCount) bleibt IMMER gleich, ebenso leere und erledigte Sätze.
+  // Alle noch offenen Arbeitssätze um eine Stufe anheben; leere und erledigte
+  // Sätze bleiben. Der offene Aufwärmsatz geht mit: eine Stufe unter das neue
+  // Top-Gewicht.
   function bumpAllSets() {
+    const id = exercise?.id ?? ''
     const bumpable = (s: SetData, i: number) => i >= warmupCount && !s.completed && s.weight_kg > 0
     if (!sets.some((s, i) => bumpable(s, i))) return
-    const updated = sets.map((s, i) =>
-      bumpable(s, i) ? { ...s, weight_kg: nextStage(exercise?.id ?? '', s.weight_kg) ?? round1(s.weight_kg + step) } : s
+    const bumped = sets.map((s, i) =>
+      bumpable(s, i) ? { ...s, weight_kg: nextStage(id, s.weight_kg) ?? round1(s.weight_kg + step) } : s
+    )
+    const top = Math.max(0, ...bumped.slice(warmupCount).map(s => s.weight_kg))
+    const updated = bumped.map((s, i) =>
+      i < warmupCount && !s.completed && top > 0
+        ? { ...s, weight_kg: stageBelow(id, top) ?? Math.max(0, round1(top - step)) }
+        : s
     )
     setSets(updated)
     triggerAutoSave(updated)
