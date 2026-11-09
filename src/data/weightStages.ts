@@ -1,7 +1,9 @@
 /**
  * Echte Gewichtsstufen je Übung (Stand 06.11.2026).
  *
- * BH: Beschriftung abgelesen vom Blockfoto (bis 70 kg), Rest aus dem Plattenaufbau.
+ * BH: 110-kg-Block der neuen schwarzen Generation, Beschriftung abgelesen von Sebastians
+ * Foto am Kabelturm im Studio (09.11.2026). Die frühere Reihe (5, 7,5, 10, 12,5, 17,5 …)
+ * gehörte zum alten silbernen 90-kg-Block und gilt im Studio nicht.
  * Technogym: offizielle Ersatzteillisten und Blockfoto. Blöcke in 5-kg-Schritten plus
  * gelber Zusatzknopf 2,5 kg, dadurch 2,5-kg-Schritte. Die Beinpresse hat keinen Zusatzknopf.
  * Herleitung: ~/dokumente/gesundheit/training/gewichtsstufen.md
@@ -15,7 +17,7 @@ function ladder(from: number, to: number, step: number): number[] {
 
 const TECHNOGYM_MIT_ZUSATZ = ladder(2.5, 132.5, 2.5)
 const TECHNOGYM_BEINPRESSE = [5, ...ladder(10, 250, 10)]
-const BH_BLOCK = [5, 7.5, 10, 12.5, 17.5, 22.5, 30, 35, 42.5, 50, 57.5, 62.5, 70, 77.5, 85, 90]
+const BH_BLOCK = [5, 10, 17.5, 25, 32.5, 40, 45, 52.5, 60, 67.5, 75, 80, 87.5, 95, 102.5, 110]
 const SCHEIBEN = ladder(2.5, 150, 2.5)
 const KURZHANTELN = ladder(2.5, 50, 2.5)
 
